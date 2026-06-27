@@ -130,6 +130,20 @@ const responsiveCSS = `
     .kpi-grid-5 { grid-template-columns: 1fr !important; }
     .shortcuts-6col { grid-template-columns: repeat(2, 1fr) !important; }
   }
+
+  /* Login responsive */
+  @media (max-width: 768px) {
+    .login-left-panel { display: none !important; }
+    .login-right { padding: 32px 20px !important; }
+  }
+
+  /* Prevent horizontal overflow */
+  html, body { overflow-x: hidden; max-width: 100vw; }
+  
+  /* Mobile header adjustments */
+  @media (max-width: 600px) {
+    .header-user-name { display: none; }
+  }
 `;
 
 /* ─── DESIGN TOKENS ─── */
@@ -280,12 +294,12 @@ function LoginPage({ onLogin }: { onLogin: (u:User) => void }) {
 
   return (
     <div style={{ display:"flex", minHeight:"100vh", fontFamily:"Inter,sans-serif" }}>
-      {/* Left */}
+      {/* Left - hidden on mobile */}
       <div style={{
         flex:"0 0 45%", background:`linear-gradient(160deg,${C.bordo4} 0%,${C.bordo} 100%)`,
         position:"relative", overflow:"hidden", padding:"48px 52px",
         display:"flex", flexDirection:"column", justifyContent:"space-between",
-      }}>
+      }} className="login-left-panel">
         <div style={{ position:"absolute", inset:0, opacity:.05,
           backgroundImage:"radial-gradient(circle,#fff 1px,transparent 1px)", backgroundSize:"28px 28px" }}/>
         <div style={{ position:"relative", zIndex:1 }}>
@@ -322,7 +336,7 @@ function LoginPage({ onLogin }: { onLogin: (u:User) => void }) {
       </div>
 
       {/* Right */}
-      <div style={{ flex:1, background:"#FAFBFC", display:"flex", alignItems:"center", justifyContent:"center", padding:"48px 40px" }}>
+      <div style={{ flex:1, background:"#FAFBFC", display:"flex", alignItems:"center", justifyContent:"center", padding:"32px 24px" }}>
         <div style={{ width:"100%", maxWidth:400 }}>
           <h2 style={{ fontSize:26, fontWeight:800, color:C.text, letterSpacing:"-0.03em", marginBottom:6 }}>Iniciar sesión</h2>
           <p style={{ color:C.textSec, fontSize:13.5, marginBottom:36 }}>Accede a tu cuenta para continuar</p>
