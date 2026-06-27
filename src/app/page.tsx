@@ -78,6 +78,60 @@ function UAGLogoLogin() {
   );
 }
 
+
+/* ─── RESPONSIVE STYLES ─── */
+const responsiveCSS = `
+  @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes slideIn{from{transform:translateX(-100%)}to{transform:translateX(0)}}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{margin:0}
+  ::-webkit-scrollbar{width:5px}
+  ::-webkit-scrollbar-thumb{background:rgba(122,37,49,.25);border-radius:3px}
+
+  /* Mobile sidebar overlay */
+  .sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 99;
+  }
+  .sidebar-overlay.open { display: block; }
+
+  /* Responsive grid */
+  @media (max-width: 1200px) {
+    .kpi-grid-5 { grid-template-columns: repeat(3, 1fr) !important; }
+    .charts-3col { grid-template-columns: 1fr 1fr !important; }
+    .shortcuts-6col { grid-template-columns: repeat(3, 1fr) !important; }
+  }
+
+  @media (max-width: 900px) {
+    .main-content { margin-left: 0 !important; }
+    .sidebar { transform: translateX(-100%); transition: transform .25s ease; }
+    .sidebar.mobile-open { transform: translateX(0) !important; }
+    .kpi-grid-5 { grid-template-columns: repeat(2, 1fr) !important; }
+    .charts-3col { grid-template-columns: 1fr !important; }
+    .shortcuts-6col { grid-template-columns: repeat(3, 1fr) !important; }
+    .table-scroll { overflow-x: auto; }
+    .hide-mobile { display: none !important; }
+    .page-header-resp { flex-direction: column !important; align-items: flex-start !important; gap: 12px !important; }
+  }
+
+  @media (max-width: 600px) {
+    .kpi-grid-5 { grid-template-columns: 1fr 1fr !important; }
+    .shortcuts-6col { grid-template-columns: repeat(2, 1fr) !important; }
+    .header-search-hide { display: none !important; }
+    .page-padding { padding: 16px !important; }
+    .modal-inner { max-width: 95vw !important; margin: 10px !important; }
+  }
+
+  @media (max-width: 400px) {
+    .kpi-grid-5 { grid-template-columns: 1fr !important; }
+    .shortcuts-6col { grid-template-columns: repeat(2, 1fr) !important; }
+  }
+`;
+
 /* ─── DESIGN TOKENS ─── */
 const C = {
   bordo:     "#7a2531",
@@ -348,12 +402,14 @@ const NAV = [
   { id:"config",       label:"Configuración",        icon:<Settings size={17}/> },
 ];
 
-function Sidebar({ active, setActive, user, onLogout }: {
-  active:string; setActive:(s:string)=>void; user:User|null; onLogout:()=>void;
+function Sidebar({ active, setActive, user, onLogout, mobileOpen, onClose }: {
+  active:string; setActive:(s:string)=>void; user:User|null; onLogout:()=>void; mobileOpen:boolean; onClose:()=>void;
 }) {
   const [hoverLogout, setHoverLogout] = useState(false);
   return (
-    <aside style={{ width:210, background:C.bordo4, height:"100vh", position:"fixed", display:"flex", flexDirection:"column", zIndex:100 }}>
+    <>
+      <div className={`sidebar-overlay ${mobileOpen ? "open" : ""}`} onClick={onClose}/>
+      <aside className={`sidebar ${mobileOpen ? "mobile-open" : ""}`} style={{ width:210, background:C.bordo4, height:"100vh", position:"fixed", display:"flex", flexDirection:"column", zIndex:100, transition:"transform .25s ease" }}>
       <div style={{ padding:"16px 16px 14px", borderBottom:"1px solid rgba(255,255,255,.1)" }}>
         <UAGLogoSmall white={true}/>
       </div>
@@ -361,7 +417,7 @@ function Sidebar({ active, setActive, user, onLogout }: {
         {NAV.map(item => {
           const on = active === item.id;
           return (
-            <div key={item.id} onClick={() => setActive(item.id)}
+            <div key={item.id} onClick={() => { setActive(item.id); onClose(); }}
               style={{ display:"flex", alignItems:"center", gap:10, padding:"9.5px 20px", cursor:"pointer",
                 background: on ? C.orange : "transparent",
                 color: on ? "#fff" : "rgba(255,255,255,.6)",
@@ -406,11 +462,16 @@ function Sidebar({ active, setActive, user, onLogout }: {
 /* ════════════════════════════════════════
    HEADER
 ════════════════════════════════════════ */
-function Header({ user }: { user:User|null }) {
+function Header({ user, onMenuToggle }: { user:User|null; onMenuToggle:()=>void }) {
   const nombre = user?.user_metadata?.nombre ?? user?.email?.split("@")[0] ?? "Usuario";
   return (
-    <header style={{ height:60, background:"#fff", borderBottom:`1px solid ${C.border}`, display:"flex", alignItems:"center", justifyContent:"space-between", padding:"0 28px", position:"sticky", top:0, zIndex:90, boxShadow:"0 1px 3px rgba(0,0,0,.05)" }}>
-      <div style={{ display:"flex", alignItems:"center" }}>
+    <header style={{ height:60, background:"#fff", borderBottom:`1px solid ${C.border}`, display:"flex", alignItems:"center", justifyContent:"space-between", padding:"0 16px 0 20px", position:"sticky", top:0, zIndex:90, boxShadow:"0 1px 3px rgba(0,0,0,.05)" }}>
+      <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+        <button onClick={onMenuToggle} style={{ width:36, height:36, border:`1px solid ${C.border}`, background:"#fff", borderRadius:8, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", color:C.textSec, flexShrink:0 }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+          </svg>
+        </button>
         <UAGLogoSmall white={false}/>
       </div>
       <div style={{ display:"flex", alignItems:"center", gap:10 }}>
@@ -449,7 +510,7 @@ function DashboardPage({ setActive, kpi }: { setActive:(s:string)=>void; kpi:Kpi
   ];
 
   return (
-    <div style={{ padding:"24px 28px", maxWidth:1400 }}>
+    <div className="page-padding" style={{ padding:"24px 28px", maxWidth:1400 }}>
       <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:24 }}>
         <div>
           <h1 style={{ fontSize:22, fontWeight:800, color:C.text, letterSpacing:"-0.03em", marginBottom:4 }}>¡Bienvenida, Candy García!</h1>
@@ -461,7 +522,7 @@ function DashboardPage({ setActive, kpi }: { setActive:(s:string)=>void; kpi:Kpi
       </div>
 
       {/* KPIs — live from Supabase */}
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(5,1fr)", gap:14, marginBottom:22 }}>
+      <div className="kpi-grid-5" style={{ display:"grid", gridTemplateColumns:"repeat(5,1fr)", gap:14, marginBottom:22 }}>
         {[
           { label:"Total alumnos",              value: kpi?.total_estudiantes ?? "—",  icon:<Users size={18}/>,         sub:"Activos"          },
           { label:"Equivalencias en proceso",   value: kpi?.equiv_proceso ?? "—",      icon:<FileText size={18}/>,      sub:"38% del total"    },
@@ -485,7 +546,7 @@ function DashboardPage({ setActive, kpi }: { setActive:(s:string)=>void; kpi:Kpi
       </div>
 
       {/* Charts row */}
-      <div style={{ display:"grid", gridTemplateColumns:"1.6fr 1fr 1.6fr", gap:16, marginBottom:18 }}>
+      <div className="charts-3col" style={{ display:"grid", gridTemplateColumns:"1.6fr 1fr 1.6fr", gap:16, marginBottom:18 }}>
         <div style={card}>
           <div style={{ padding:"15px 20px 12px", borderBottom:`1px solid ${C.borderL}`, display:"flex", justifyContent:"space-between" }}>
             <span style={{ fontWeight:700, fontSize:13.5, color:C.text }}>Avance académico por carrera</span>
@@ -545,7 +606,7 @@ function DashboardPage({ setActive, kpi }: { setActive:(s:string)=>void; kpi:Kpi
         <div style={{ padding:"15px 20px 12px", borderBottom:`1px solid ${C.borderL}` }}>
           <span style={{ fontWeight:700, fontSize:13.5, color:C.text }}>Atajos rápidos</span>
         </div>
-        <div style={{ padding:"16px 20px", display:"grid", gridTemplateColumns:"repeat(6,1fr)", gap:10 }}>
+        <div className="shortcuts-6col" style={{ padding:"16px 20px", display:"grid", gridTemplateColumns:"repeat(6,1fr)", gap:10 }}>
           {[
             { label:"Nuevo alumno",       icon:<Users size={20}/>,          fn:()=>setActive("alumnos")        },
             { label:"Nueva equivalencia", icon:<FileText size={20}/>,       fn:()=>setActive("equivalencias")  },
@@ -629,7 +690,7 @@ function AlumnosPage() {
   }
 
   return (
-    <div style={{ padding:"24px 28px" }}>
+    <div className="page-padding" style={{ padding:"24px 28px" }}>
       {toast && <Toast {...toast}/>}
 
       {/* Modal */}
@@ -703,7 +764,7 @@ function AlumnosPage() {
               : "No se encontraron resultados para tu búsqueda."}
           </div>
         ) : (
-          <table style={{ width:"100%", borderCollapse:"collapse" }}>
+          <div className="table-scroll"><table style={{ width:"100%", borderCollapse:"collapse", minWidth:600 }}>
             <thead>
               <tr style={{ background:C.bg }}>
                 {["#","Matrícula","Alumno","Carrera","Ciclo","Estatus","Acciones"].map(h => (
@@ -780,7 +841,7 @@ function EquivalenciasPage() {
   }, []);
 
   return (
-    <div style={{ padding:"24px 28px" }}>
+    <div className="page-padding" style={{ padding:"24px 28px" }}>
       <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:22 }}>
         <h1 style={{ fontSize:22, fontWeight:800, color:C.text, letterSpacing:"-0.03em" }}>Equivalencias</h1>
         <button style={{ background:C.bordo, color:"#fff", border:"none", borderRadius:8, padding:"9px 18px", fontSize:13, fontWeight:700, cursor:"pointer", display:"flex", alignItems:"center", gap:7 }}>
@@ -800,7 +861,7 @@ function EquivalenciasPage() {
             <div style={{ fontSize:12.5, marginTop:4 }}>Las equivalencias aparecerán aquí una vez que se registren en la base de datos.</div>
           </div>
         ) : (
-          <table style={{ width:"100%", borderCollapse:"collapse" }}>
+          <div className="table-scroll"><table style={{ width:"100%", borderCollapse:"collapse", minWidth:600 }}>
             <thead>
               <tr style={{ background:C.bg }}>
                 {["Alumno","Materia Origen","Institución","Materia UAG","Créditos","Fecha","Estatus"].map(h => (
@@ -850,7 +911,7 @@ function EquivalenciasPage() {
 ════════════════════════════════════════ */
 function PlaceholderPage({ title, icon }: { title:string; icon:React.ReactNode }) {
   return (
-    <div style={{ padding:"24px 28px" }}>
+    <div className="page-padding" style={{ padding:"24px 28px" }}>
       <h1 style={{ fontSize:22, fontWeight:800, color:C.text, letterSpacing:"-0.03em", marginBottom:24 }}>{title}</h1>
       <div style={{ background:"#fff", border:`1px solid ${C.borderL}`, borderRadius:12, padding:"60px 24px", textAlign:"center", color:C.textMuted }}>
         <div style={{ color:C.bordo, opacity:.2, marginBottom:14 }}>{icon}</div>
@@ -869,6 +930,7 @@ export default function UAGPage() {
   const [active, setActive] = useState("dashboard");
   const [kpi,    setKpi]    = useState<KpiData|null>(null);
   const [checking, setChecking] = useState(true);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   // Restore session on mount
   useEffect(() => {
@@ -948,18 +1010,11 @@ export default function UAGPage() {
 
   return (
     <>
-      <style>{`
-        @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
-        @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
-        *{box-sizing:border-box;margin:0;padding:0}
-        body{margin:0}
-        ::-webkit-scrollbar{width:5px}
-        ::-webkit-scrollbar-thumb{background:rgba(107,29,29,.25);border-radius:3px}
-      `}</style>
+      <style>{responsiveCSS}</style>
       <div style={{ fontFamily:"Inter,system-ui,sans-serif", display:"flex", minHeight:"100vh", background:C.bg }}>
-        <Sidebar active={active} setActive={setActive} user={user} onLogout={logout}/>
-        <div style={{ marginLeft:210, flex:1, display:"flex", flexDirection:"column" }}>
-          <Header user={user}/>
+        <Sidebar active={active} setActive={setActive} user={user} onLogout={logout} mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)}/>
+        <div className="main-content" style={{ marginLeft:210, flex:1, display:"flex", flexDirection:"column", minWidth:0 }}>
+          <Header user={user} onMenuToggle={() => setMobileOpen(!mobileOpen)}/>
           <main style={{ flex:1, overflowY:"auto" }}>
             {active==="dashboard"     && <DashboardPage setActive={setActive} kpi={kpi}/>}
             {active==="alumnos"       && <AlumnosPage/>}
