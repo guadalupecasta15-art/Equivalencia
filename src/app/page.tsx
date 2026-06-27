@@ -21,13 +21,70 @@ const supabase = createBrowserClient(
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5mdmtoenJ4ZnBxYnlzZWFjanZ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIzMDkyNzAsImV4cCI6MjA5Nzg4NTI3MH0.c3fYMudpHh37ybQ21MKnTJ2GHlh3chJJZAdObQPp-o0"
 );
 
+
+/* ─── UAG LOGOS ─── */
+function UAGLogoSmall({ white = false }: { white?: boolean }) {
+  const bordo = white ? "#ffffff" : "#7a2531";
+  const orange = "#ee750a";
+  return (
+    <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+      <svg width="36" height="36" viewBox="0 0 80 80" fill="none">
+        <path d="M15 65 L5 15 L13 17 L28 60Z" fill={orange} opacity="0.9"/>
+        <path d="M22 65 L12 10 L20 13 L32 62Z" fill={bordo} opacity="0.85"/>
+        <path d="M30 65 L24 8 L32 12 L38 64Z" fill={bordo}/>
+        <path d="M38 65 L36 7 L44 11 L42 64Z" fill={bordo}/>
+        <path d="M46 65 L48 8 L56 12 L50 65Z" fill={bordo} opacity="0.85"/>
+        <path d="M54 65 L60 12 L68 17 L58 65Z" fill={bordo} opacity="0.7"/>
+        <path d="M4 70 Q38 78 72 70" stroke={orange} strokeWidth="3" fill="none" strokeLinecap="round"/>
+      </svg>
+      <div>
+        <div style={{ fontWeight:900, fontSize:15, color:bordo, letterSpacing:"-0.03em", lineHeight:1 }}>UAG</div>
+        <div style={{ display:"flex", alignItems:"center", gap:2, marginTop:1 }}>
+          <svg width="10" height="10" viewBox="0 0 20 20">
+            <circle cx="10" cy="10" r="8" fill="none" stroke={orange} strokeWidth="2.5"/>
+            <line x1="10" y1="3" x2="10" y2="11" stroke={orange} strokeWidth="2.5" strokeLinecap="round"/>
+          </svg>
+          <span style={{ fontSize:11, fontWeight:700, color:white ? "rgba(255,255,255,0.9)" : "#7a2531" }}>nline</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function UAGLogoLogin() {
+  return (
+    <div style={{ display:"flex", alignItems:"center", gap:16 }}>
+      <svg width="70" height="70" viewBox="0 0 80 80" fill="none">
+        <path d="M15 65 L5 15 L13 17 L28 60Z" fill="#ee750a" opacity="0.9"/>
+        <path d="M22 65 L12 10 L20 13 L32 62Z" fill="#ffffff" opacity="0.85"/>
+        <path d="M30 65 L24 8 L32 12 L38 64Z" fill="#ffffff"/>
+        <path d="M38 65 L36 7 L44 11 L42 64Z" fill="#ffffff"/>
+        <path d="M46 65 L48 8 L56 12 L50 65Z" fill="#ffffff" opacity="0.85"/>
+        <path d="M54 65 L60 12 L68 17 L58 65Z" fill="#ffffff" opacity="0.7"/>
+        <path d="M4 70 Q38 78 72 70" stroke="#ee750a" strokeWidth="3" fill="none" strokeLinecap="round"/>
+      </svg>
+      <div style={{ borderLeft:"1px solid rgba(255,255,255,0.3)", paddingLeft:16 }}>
+        <div style={{ fontWeight:900, fontSize:28, color:"#fff", letterSpacing:"-0.03em", lineHeight:1 }}>UAG</div>
+        <div style={{ display:"flex", alignItems:"center", gap:4, marginTop:3 }}>
+          <svg width="14" height="14" viewBox="0 0 20 20">
+            <circle cx="10" cy="10" r="8" fill="none" stroke="#ee750a" strokeWidth="2.5"/>
+            <line x1="10" y1="3" x2="10" y2="11" stroke="#ee750a" strokeWidth="2.5" strokeLinecap="round"/>
+          </svg>
+          <span style={{ fontSize:18, fontWeight:700, color:"#ee750a" }}>nline</span>
+        </div>
+        <div style={{ fontSize:9, color:"rgba(255,255,255,0.5)", marginTop:4, textTransform:"uppercase", letterSpacing:"0.08em" }}>Powered by Arizona State University®</div>
+      </div>
+    </div>
+  );
+}
+
 /* ─── DESIGN TOKENS ─── */
 const C = {
-  bordo:     "#6B1D1D",
-  bordo2:    "#7d2323",
-  bordo3:    "#4e1515",
-  bordo4:    "#3a0f0f",
-  orange:    "#F5A623",
+  bordo:     "#7a2531",
+  bordo2:    "#8b2c3a",
+  bordo3:    "#5c1a22",
+  bordo4:    "#4a1520",
+  orange:    "#ee750a",
   bg:        "#F8F9FB",
   surface:   "#FFFFFF",
   border:    "#E8ECF0",
@@ -178,10 +235,8 @@ function LoginPage({ onLogin }: { onLogin: (u:User) => void }) {
         <div style={{ position:"absolute", inset:0, opacity:.05,
           backgroundImage:"radial-gradient(circle,#fff 1px,transparent 1px)", backgroundSize:"28px 28px" }}/>
         <div style={{ position:"relative", zIndex:1 }}>
-          <div style={{ display:"flex", alignItems:"center", gap:14, marginBottom:60 }}>
-            <div style={{ background:"#fff", borderRadius:10, padding:"8px 14px", fontWeight:900, fontSize:22, color:C.bordo }}>UAG</div>
-            <span style={{ color:C.orange, fontWeight:800, fontSize:22 }}>○</span>
-            <span style={{ color:C.orange, fontWeight:700, fontSize:22 }}>nline</span>
+          <div style={{ marginBottom:52 }}>
+            <UAGLogoLogin/>
           </div>
           <div style={{ color:"rgba(255,255,255,.55)", fontSize:12, letterSpacing:".06em", textTransform:"uppercase", marginBottom:4 }}>
             Powered by Arizona State University®
@@ -299,12 +354,8 @@ function Sidebar({ active, setActive, user, onLogout }: {
   const [hoverLogout, setHoverLogout] = useState(false);
   return (
     <aside style={{ width:210, background:C.bordo4, height:"100vh", position:"fixed", display:"flex", flexDirection:"column", zIndex:100 }}>
-      <div style={{ padding:"22px 20px 18px", borderBottom:"1px solid rgba(255,255,255,.08)" }}>
-        <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-          <div style={{ background:"#fff", borderRadius:7, padding:"5px 10px", fontWeight:900, fontSize:15, color:C.bordo }}>UAG</div>
-          <span style={{ color:C.orange, fontWeight:800, fontSize:16 }}>○</span>
-          <span style={{ color:C.orange, fontWeight:700, fontSize:16 }}>nline</span>
-        </div>
+      <div style={{ padding:"16px 16px 14px", borderBottom:"1px solid rgba(255,255,255,.1)" }}>
+        <UAGLogoSmall white={true}/>
       </div>
       <nav style={{ flex:1, overflowY:"auto", padding:"10px 0" }}>
         {NAV.map(item => {
@@ -359,9 +410,8 @@ function Header({ user }: { user:User|null }) {
   const nombre = user?.user_metadata?.nombre ?? user?.email?.split("@")[0] ?? "Usuario";
   return (
     <header style={{ height:60, background:"#fff", borderBottom:`1px solid ${C.border}`, display:"flex", alignItems:"center", justifyContent:"space-between", padding:"0 28px", position:"sticky", top:0, zIndex:90, boxShadow:"0 1px 3px rgba(0,0,0,.05)" }}>
-      <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-        <div style={{ background:"#fff", border:`1px solid ${C.border}`, borderRadius:7, padding:"4px 10px", fontWeight:900, fontSize:13, color:C.bordo }}>UAG</div>
-        <span style={{ color:C.orange, fontWeight:800, fontSize:14 }}>○nline</span>
+      <div style={{ display:"flex", alignItems:"center" }}>
+        <UAGLogoSmall white={false}/>
       </div>
       <div style={{ display:"flex", alignItems:"center", gap:10 }}>
         <div style={{ position:"relative", cursor:"pointer" }}>
