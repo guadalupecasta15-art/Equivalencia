@@ -146,6 +146,30 @@ const responsiveCSS = `
   }
 `;
 
+
+/* ─── RESPONSIVE HOOK ─── */
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+  return isMobile;
+}
+
+function useIsTablet() {
+  const [isTablet, setIsTablet] = useState(false);
+  useEffect(() => {
+    const check = () => setIsTablet(window.innerWidth < 1024);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+  return isTablet;
+}
+
 /* ─── DESIGN TOKENS ─── */
 const C = {
   bordo:     "#7a2531",
@@ -277,6 +301,7 @@ function Toast({ msg, ok }: { msg:string; ok:boolean }) {
    LOGIN PAGE
 ════════════════════════════════════════ */
 function LoginPage({ onLogin }: { onLogin: (u:User) => void }) {
+  const isMobile = useIsMobile();
   const [email, setEmail]   = useState("");
   const [pass,  setPass]    = useState("");
   const [error, setError]   = useState("");
@@ -298,8 +323,9 @@ function LoginPage({ onLogin }: { onLogin: (u:User) => void }) {
       <div style={{
         flex:"0 0 45%", background:`linear-gradient(160deg,${C.bordo4} 0%,${C.bordo} 100%)`,
         position:"relative", overflow:"hidden", padding:"48px 52px",
-        display:"flex", flexDirection:"column", justifyContent:"space-between",
-      }} className="login-left-panel">
+        display: isMobile ? "none" : "flex",
+        flexDirection:"column", justifyContent:"space-between",
+      }}>
         <div style={{ position:"absolute", inset:0, opacity:.05,
           backgroundImage:"radial-gradient(circle,#fff 1px,transparent 1px)", backgroundSize:"28px 28px" }}/>
         <div style={{ position:"relative", zIndex:1 }}>
@@ -336,8 +362,8 @@ function LoginPage({ onLogin }: { onLogin: (u:User) => void }) {
       </div>
 
       {/* Right */}
-      <div style={{ flex:1, background:"#FAFBFC", display:"flex", alignItems:"center", justifyContent:"center", padding:"32px 24px" }}>
-        <div style={{ width:"100%", maxWidth:400 }}>
+      <div style={{ flex:1, background:"#FAFBFC", display:"flex", alignItems:"center", justifyContent:"center", padding: isMobile ? "24px 20px" : "32px 24px", minHeight: isMobile ? "100vh" : "auto" }}>
+        <div style={{ width:"100%", maxWidth: isMobile ? "100%" : 400 }}>
           <h2 style={{ fontSize:26, fontWeight:800, color:C.text, letterSpacing:"-0.03em", marginBottom:6 }}>Iniciar sesión</h2>
           <p style={{ color:C.textSec, fontSize:13.5, marginBottom:36 }}>Accede a tu cuenta para continuar</p>
 
@@ -477,6 +503,7 @@ function Sidebar({ active, setActive, user, onLogout, mobileOpen, onClose }: {
    HEADER
 ════════════════════════════════════════ */
 function Header({ user, onMenuToggle }: { user:User|null; onMenuToggle:()=>void }) {
+  const isMobile = useIsMobile();
   const nombre = user?.user_metadata?.nombre ?? user?.email?.split("@")[0] ?? "Usuario";
   return (
     <header style={{ height:60, background:"#fff", borderBottom:`1px solid ${C.border}`, display:"flex", alignItems:"center", justifyContent:"space-between", padding:"0 16px 0 20px", position:"sticky", top:0, zIndex:90, boxShadow:"0 1px 3px rgba(0,0,0,.05)" }}>
@@ -493,13 +520,13 @@ function Header({ user, onMenuToggle }: { user:User|null; onMenuToggle:()=>void 
           <Bell size={19} color={C.textSec}/>
           <div style={{ position:"absolute", top:-3, right:-3, background:C.orange, color:"#fff", borderRadius:"50%", width:14, height:14, display:"flex", alignItems:"center", justifyContent:"center", fontSize:8.5, fontWeight:800, border:"2px solid #fff" }}>3</div>
         </div>
-        <HelpCircle size={19} color={C.textSec} style={{ cursor:"pointer" }}/>
+        {!isMobile && <HelpCircle size={19} color={C.textSec} style={{ cursor:"pointer" }}/>}
         <div style={{ display:"flex", alignItems:"center", gap:9, cursor:"pointer", padding:"5px 10px 5px 5px", borderRadius:8, border:`1px solid ${C.border}` }}>
           <Avatar name={nombre} sz={28}/>
-          <div>
+          {!isMobile && <div>
             <div style={{ fontSize:13, fontWeight:700, color:C.text, lineHeight:1.2 }}>{nombre}</div>
             <div style={{ fontSize:10.5, color:C.textMuted }}>Jefa de Admisiones</div>
-          </div>
+          </div>}
           <ChevronDown size={13} color={C.textMuted}/>
         </div>
       </div>
@@ -514,6 +541,8 @@ const BAR_DATA  = [{ name:"Administración",valor:65 },{ name:"Derecho",valor:72
 const LINE_DATA = [{ mes:"Ene",proceso:20,validadas:10,pendientes:15,rechazadas:3 },{ mes:"Feb",proceso:28,validadas:18,pendientes:14,rechazadas:4 },{ mes:"Mar",proceso:35,validadas:30,pendientes:12,rechazadas:3 },{ mes:"Abr",proceso:40,validadas:38,pendientes:16,rechazadas:5 },{ mes:"May",proceso:45,validadas:48,pendientes:18,rechazadas:4 },{ mes:"Jun",proceso:48,validadas:56,pendientes:21,rechazadas:5 }];
 
 function DashboardPage({ setActive, kpi }: { setActive:(s:string)=>void; kpi:KpiData|null }) {
+  const isTablet = useIsTablet();
+  const isMobile = useIsMobile();
   const card = { background:"#fff", border:`1px solid ${C.borderL}`, borderRadius:12, boxShadow:"0 1px 4px rgba(0,0,0,.04)", overflow:"hidden" };
   const DOUGHNUT = [
     { name:"Pendiente",   value: kpi?.equiv_pendientes ?? 0,  color:C.orange },
@@ -524,7 +553,7 @@ function DashboardPage({ setActive, kpi }: { setActive:(s:string)=>void; kpi:Kpi
   ];
 
   return (
-    <div className="page-padding" style={{ padding:"24px 28px", maxWidth:1400 }}>
+    <div style={{ padding: isMobile ? "16px" : "24px 28px", maxWidth:1400 }}>
       <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:24 }}>
         <div>
           <h1 style={{ fontSize:22, fontWeight:800, color:C.text, letterSpacing:"-0.03em", marginBottom:4 }}>¡Bienvenida, Candy García!</h1>
@@ -536,7 +565,7 @@ function DashboardPage({ setActive, kpi }: { setActive:(s:string)=>void; kpi:Kpi
       </div>
 
       {/* KPIs — live from Supabase */}
-      <div className="kpi-grid-5" style={{ display:"grid", gridTemplateColumns:"repeat(5,1fr)", gap:14, marginBottom:22 }}>
+      <div style={{ display:"grid", gridTemplateColumns: isMobile ? "1fr 1fr" : isTablet ? "repeat(3,1fr)" : "repeat(5,1fr)", gap:14, marginBottom:22 }}>
         {[
           { label:"Total alumnos",              value: kpi?.total_estudiantes ?? "—",  icon:<Users size={18}/>,         sub:"Activos"          },
           { label:"Equivalencias en proceso",   value: kpi?.equiv_proceso ?? "—",      icon:<FileText size={18}/>,      sub:"38% del total"    },
@@ -560,7 +589,7 @@ function DashboardPage({ setActive, kpi }: { setActive:(s:string)=>void; kpi:Kpi
       </div>
 
       {/* Charts row */}
-      <div className="charts-3col" style={{ display:"grid", gridTemplateColumns:"1.6fr 1fr 1.6fr", gap:16, marginBottom:18 }}>
+      <div style={{ display:"grid", gridTemplateColumns: isMobile ? "1fr" : isTablet ? "1fr 1fr" : "1.6fr 1fr 1.6fr", gap:16, marginBottom:18 }}>
         <div style={card}>
           <div style={{ padding:"15px 20px 12px", borderBottom:`1px solid ${C.borderL}`, display:"flex", justifyContent:"space-between" }}>
             <span style={{ fontWeight:700, fontSize:13.5, color:C.text }}>Avance académico por carrera</span>
@@ -620,7 +649,7 @@ function DashboardPage({ setActive, kpi }: { setActive:(s:string)=>void; kpi:Kpi
         <div style={{ padding:"15px 20px 12px", borderBottom:`1px solid ${C.borderL}` }}>
           <span style={{ fontWeight:700, fontSize:13.5, color:C.text }}>Atajos rápidos</span>
         </div>
-        <div className="shortcuts-6col" style={{ padding:"16px 20px", display:"grid", gridTemplateColumns:"repeat(6,1fr)", gap:10 }}>
+        <div style={{ padding:"16px 20px", display:"grid", gridTemplateColumns: isMobile ? "repeat(2,1fr)" : isTablet ? "repeat(3,1fr)" : "repeat(6,1fr)", gap:10 }}>
           {[
             { label:"Nuevo alumno",       icon:<Users size={20}/>,          fn:()=>setActive("alumnos")        },
             { label:"Nueva equivalencia", icon:<FileText size={20}/>,       fn:()=>setActive("equivalencias")  },
@@ -647,6 +676,7 @@ function DashboardPage({ setActive, kpi }: { setActive:(s:string)=>void; kpi:Kpi
    ALUMNOS — full CRUD
 ════════════════════════════════════════ */
 function AlumnosPage() {
+  const isMobile = useIsMobile();
   const [list, setList]     = useState<Estudiante[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -704,7 +734,7 @@ function AlumnosPage() {
   }
 
   return (
-    <div className="page-padding" style={{ padding:"24px 28px" }}>
+    <div style={{ padding: isMobile ? "16px" : "24px 28px" }}>
       {toast && <Toast {...toast}/>}
 
       {/* Modal */}
@@ -778,7 +808,7 @@ function AlumnosPage() {
               : "No se encontraron resultados para tu búsqueda."}
           </div>
         ) : (
-          <div className="table-scroll"><table style={{ width:"100%", borderCollapse:"collapse", minWidth:600 }}>
+          <div style={{ overflowX:"auto", WebkitOverflowScrolling:"touch" }}><table style={{ width:"100%", borderCollapse:"collapse", minWidth:600 }}>
             <thead>
               <tr style={{ background:C.bg }}>
                 {["#","Matrícula","Alumno","Carrera","Ciclo","Estatus","Acciones"].map(h => (
@@ -843,6 +873,7 @@ function AlumnosPage() {
    EQUIVALENCIAS — live data
 ════════════════════════════════════════ */
 function EquivalenciasPage() {
+  const isMobile = useIsMobile();
   const [list, setList] = useState<Equivalencia[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -855,7 +886,7 @@ function EquivalenciasPage() {
   }, []);
 
   return (
-    <div className="page-padding" style={{ padding:"24px 28px" }}>
+    <div style={{ padding: isMobile ? "16px" : "24px 28px" }}>
       <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:22 }}>
         <h1 style={{ fontSize:22, fontWeight:800, color:C.text, letterSpacing:"-0.03em" }}>Equivalencias</h1>
         <button style={{ background:C.bordo, color:"#fff", border:"none", borderRadius:8, padding:"9px 18px", fontSize:13, fontWeight:700, cursor:"pointer", display:"flex", alignItems:"center", gap:7 }}>
@@ -875,7 +906,7 @@ function EquivalenciasPage() {
             <div style={{ fontSize:12.5, marginTop:4 }}>Las equivalencias aparecerán aquí una vez que se registren en la base de datos.</div>
           </div>
         ) : (
-          <div className="table-scroll"><table style={{ width:"100%", borderCollapse:"collapse", minWidth:600 }}>
+          <div style={{ overflowX:"auto", WebkitOverflowScrolling:"touch" }}><table style={{ width:"100%", borderCollapse:"collapse", minWidth:600 }}>
             <thead>
               <tr style={{ background:C.bg }}>
                 {["Alumno","Materia Origen","Institución","Materia UAG","Créditos","Fecha","Estatus"].map(h => (
@@ -925,7 +956,7 @@ function EquivalenciasPage() {
 ════════════════════════════════════════ */
 function PlaceholderPage({ title, icon }: { title:string; icon:React.ReactNode }) {
   return (
-    <div className="page-padding" style={{ padding:"24px 28px" }}>
+    <div style={{ padding: isMobile ? "16px" : "24px 28px" }}>
       <h1 style={{ fontSize:22, fontWeight:800, color:C.text, letterSpacing:"-0.03em", marginBottom:24 }}>{title}</h1>
       <div style={{ background:"#fff", border:`1px solid ${C.borderL}`, borderRadius:12, padding:"60px 24px", textAlign:"center", color:C.textMuted }}>
         <div style={{ color:C.bordo, opacity:.2, marginBottom:14 }}>{icon}</div>
