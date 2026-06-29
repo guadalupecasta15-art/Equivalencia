@@ -240,8 +240,20 @@ const CT = ({ active:a, payload:p, label:l }: any) => {
 };
 
 function UAGLogo({ white=false, size=28 }: { white?:boolean;size?:number }) {
-  const b=white?"#fff":T.brand, o=T.orange;
-  return <div style={{display:"flex",alignItems:"center",gap:8}} aria-label="UAG Online"><svg width={size} height={size} viewBox="0 0 80 80" fill="none" aria-hidden="true"><path d="M15 65 L5 15 L13 17 L28 60Z" fill={o} opacity=".9"/><path d="M22 65 L12 10 L20 13 L32 62Z" fill={b} opacity=".85"/><path d="M30 65 L24 8 L32 12 L38 64Z" fill={b}/><path d="M38 65 L36 7 L44 11 L42 64Z" fill={b}/><path d="M46 65 L48 8 L56 12 L50 65Z" fill={b} opacity=".85"/><path d="M54 65 L60 12 L68 17 L58 65Z" fill={b} opacity=".7"/><path d="M4 70 Q38 78 72 70" stroke={o} strokeWidth="3" fill="none" strokeLinecap="round"/></svg><div><div style={{fontWeight:900,fontSize:Math.round(size*.5),color:b,letterSpacing:"-.04em",lineHeight:1}}>UAG</div><div style={{display:"flex",alignItems:"center",gap:3,marginTop:2}}><svg width={Math.round(size*.3)} height={Math.round(size*.3)} viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8" fill="none" stroke={o} strokeWidth="2.5"/><line x1="10" y1="3" x2="10" y2="11" stroke={o} strokeWidth="2.5" strokeLinecap="round"/></svg><span style={{fontSize:Math.round(size*.3),fontWeight:700,color:white?"rgba(255,255,255,.82)":b,letterSpacing:"-.01em"}}>nline</span></div></div></div>;
+  return (
+    <div style={{display:"flex",alignItems:"center",gap:8}} aria-label="UAG Online">
+      <img
+        src="https://nfvkhzrxfpqbyseacjvu.supabase.co/storage/v1/object/sign/Assets%20Logo/Recurso%201.png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9jNTYzMjkxMi00OWRhLTRkZTEtYTAwMS1iYWIwMzZjYzc1YWEiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJBc3NldHMgTG9nby9SZWN1cnNvIDEucG5nIiwic2NvcGUiOiJkb3dubG9hZCIsImlhdCI6MTc4Mjc1MzUzMSwiZXhwIjoyMDM1MDQxNTMxfQ.UbOq5slL20vZJ4G2lQcia9ILj5hrMXsIc-igzyhj5ao"
+        alt="UAG Online"
+        style={{
+          height: size * 1.5,
+          width: "auto",
+          objectFit: "contain",
+          filter: white ? "brightness(0) invert(1)" : "none",
+        }}
+      />
+    </div>
+  );
 }
 
 const PAGE_TITLES: Record<string,string> = {
