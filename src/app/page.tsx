@@ -186,6 +186,7 @@ type Equivalencia = { id:string;estudiante_id:string;clave_origen:string;nombre_
 type KpiData = { total_estudiantes:number;equiv_pendientes:number;equiv_proceso:number;equiv_validadas:number;equiv_rechazadas:number;equiv_finalizadas:number;};
 type AuditLog = { id:string;tabla:string;accion:string;campo?:string;valor_antes?:string;valor_despues?:string;created_at:string;usuario_id?:string;};
 type Carrera = { id:string;nombre:string;clave:string;creditos_total:number;total_materias:number;modalidad:string;};
+type Materia = { id:string;carrera_id:string;clave:string;nombre:string;creditos:number;semestre:number;obligatoria:boolean;};
 type Usuario = { id:string;nombre:string;correo:string;rol:string;activo:boolean;ultimo_login?:string;};
 
 const PERMS: Record<Rol,Record<string,boolean>> = {
@@ -905,8 +906,19 @@ function CarrerasPage() {
   const [loading,setLoading]=useState(true);
   const [search,setSearch]=useState("");
   const [selected,setSelected]=useState<Carrera|null>(null);
+  const [materias,setMaterias]=useState<Materia[]>([]);
+  const [loadingMat,setLoadingMat]=useState(false);
   useEffect(()=>{ supabase.from("carreras").select("*").order("nombre").then(({data})=>{ if(data) setList(data as Carrera[]); setLoading(false); }); },[]);
+  useEffect(()=>{
+    if(!selected){ setMaterias([]); return; }
+    setLoadingMat(true);
+    supabase.from("materias").select("*").eq("carrera_id",selected.id).order("semestre",{ascending:true}).order("clave",{ascending:true}).then(({data})=>{
+      if(data) setMaterias(data as Materia[]);
+      setLoadingMat(false);
+    });
+  },[selected]);
   const filtered=list.filter(c=>c.nombre.toLowerCase().includes(search.toLowerCase())||c.clave.toLowerCase().includes(search.toLowerCase()));
+  const semestres=[...new Set(materias.map(m=>m.semestre))].sort((a,b)=>a-b);
   return (
     <div className="pw">
       <div className="fl-sb fl-w g12 mb20">
@@ -924,15 +936,36 @@ function CarrerasPage() {
               <div key={l} style={{background:T.s2,borderRadius:10,padding:"12px 14px",border:`1px solid ${T.border}`}}><p style={{fontSize:10.5,color:T.t4,fontWeight:700,textTransform:"uppercase",letterSpacing:".06em",marginBottom:5}}>{l}</p><p style={{fontSize:16,fontWeight:800,color:T.t1}}>{v}</p></div>
             ))}
           </div>
-          <p className="stitle" style={{marginBottom:12}}>Plan de estudios (muestra)</p>
-          <div className="tw">
-            <table>
-              <thead><tr>{["Semestre","Clave","Materia","Créditos","Tipo"].map(h=><th key={h} scope="col">{h}</th>)}</tr></thead>
-              <tbody>{[{s:1,c:"DER101",n:"Introducción al Derecho",cr:6,t:"Obligatoria"},{s:1,c:"HIS101",n:"Historia Universal",cr:4,t:"Optativa"},{s:2,c:"DER201",n:"Derecho Civil I",cr:6,t:"Obligatoria"},{s:2,c:"SOC201",n:"Sociología Jurídica",cr:4,t:"Optativa"}].map((m,i)=>(
-                <tr key={i}><td><span style={{background:T.blueM,color:T.blue,padding:"2px 8px",borderRadius:99,fontSize:12,fontWeight:700}}>Sem. {m.s}</span></td><td><code style={{background:T.s2,color:T.t2,padding:"2px 7px",borderRadius:5,fontSize:12,fontFamily:"monospace",fontWeight:600}}>{m.c}</code></td><td style={{fontSize:13.5,fontWeight:500,color:T.t1}}>{m.n}</td><td><span style={{background:T.purpleM,color:T.purple,padding:"2px 8px",borderRadius:99,fontSize:12,fontWeight:600}}>{m.cr} cr.</span></td><td><span style={{background:m.t==="Obligatoria"?T.redL:T.greenL,color:m.t==="Obligatoria"?T.red:T.green,padding:"2px 8px",borderRadius:99,fontSize:12,fontWeight:600}}>{m.t}</span></td></tr>
-              ))}</tbody>
-            </table>
-          </div>
+          <p className="stitle" style={{marginBottom:12}}>Plan de estudios</p>
+          {loadingMat?(
+            <div style={{padding:40,textAlign:"center"}} role="status"><Sp size={18} label="Cargando plan de estudios"/></div>
+          ):materias.length===0?(
+            <ES icon={<BookOpen size={36}/>} title="Sin materias registradas" desc="Esta carrera todavía no tiene su malla curricular cargada."/>
+          ):(
+            <div style={{display:"flex",flexDirection:"column",gap:14}}>
+              {semestres.map(sem=>(
+                <div key={sem}>
+                  <div className="fl g8 mb8">
+                    <span style={{background:T.brand,color:"#fff",padding:"3px 10px",borderRadius:99,fontSize:12,fontWeight:700}}>Semestre {sem}</span>
+                    <span style={{fontSize:12,color:T.t3}}>{materias.filter(m=>m.semestre===sem).length} materias</span>
+                  </div>
+                  <div className="tw">
+                    <table>
+                      <thead><tr>{["Clave","Materia","Créditos","Tipo"].map(h=><th key={h} scope="col">{h}</th>)}</tr></thead>
+                      <tbody>{materias.filter(m=>m.semestre===sem).map(m=>(
+                        <tr key={m.id}>
+                          <td><code style={{background:T.s2,color:T.t2,padding:"2px 7px",borderRadius:5,fontSize:12,fontFamily:"monospace",fontWeight:600}}>{m.clave}</code></td>
+                          <td style={{fontSize:13.5,fontWeight:500,color:T.t1}}>{m.nombre}</td>
+                          <td><span style={{background:T.purpleM,color:T.purple,padding:"2px 8px",borderRadius:99,fontSize:12,fontWeight:600}}>{m.creditos??"—"} cr.</span></td>
+                          <td><span style={{background:m.obligatoria?T.redL:T.greenL,color:m.obligatoria?T.red:T.green,padding:"2px 8px",borderRadius:99,fontSize:12,fontWeight:600}}>{m.obligatoria?"Obligatoria":"Optativa"}</span></td>
+                        </tr>
+                      ))}</tbody>
+                    </table>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       ):(
         <div className="card">
