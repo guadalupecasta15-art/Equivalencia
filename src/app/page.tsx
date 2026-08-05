@@ -1027,7 +1027,7 @@ function ReportesPage() {
     {l:"Equiv. pendientes",v:pendientes,c:T.amber,icon:<Clock size={16}/>},
     {l:"Equiv. rechazadas",v:rechazadas,c:T.red,icon:<X size={16}/>},
     {l:"Total equivalencias",v:equivs.length,c:T.blue,icon:<FileText size={16}/>},
-    {l:"Tasa de aprobación",v:`${tasaAprobacion}%`,c:T.purple,icon:<Target size={16}/>},
+    {l:"Tasa de aprobaciÃ³n",v:`${tasaAprobacion}%`,c:T.purple,icon:<Target size={16}/>},
   ];
 
   const MESES=["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
@@ -1061,7 +1061,7 @@ function ReportesPage() {
   return (
     <div className="pw">
       <div className="fl-sb fl-w g12 mb20">
-        <div><h2 className="ptitle">Reportes e Indicadores</h2><p style={{fontSize:13.5,color:T.t3,marginTop:3}}>{loading?"Calculando…":`Datos en vivo · ${equivs.length} equivalencias analizadas`}</p></div>
+        <div><h2 className="ptitle">Reportes e Indicadores</h2><p style={{fontSize:13.5,color:T.t3,marginTop:3}}>{loading?"Calculandoâ€¦":`Datos en vivo Â· ${equivs.length} equivalencias analizadas`}</p></div>
         <div className="fl g8">
           <button className="btn bs" style={{fontSize:13}}><Download size={13}/> PDF</button>
           <button className="btn bs" style={{fontSize:13}}><Download size={13}/> Excel</button>
@@ -1072,7 +1072,7 @@ function ReportesPage() {
         <div className="fl-w g12">
           <div className="fl g8">
             <span style={{fontSize:13,color:T.t2,fontWeight:500}}>Filtros:</span>
-            {[{l:"Período",o:["2026A","2025B","2025A"],v:periodo,fn:setPeriodo},{l:"Carrera",o:["todas","Administración","Derecho","Psicología","Diseño","Contaduría"],v:carrera,fn:setCarrera}].map(f=>(
+            {[{l:"PerÃ­odo",o:["2026A","2025B","2025A"],v:periodo,fn:setPeriodo},{l:"Carrera",o:["todas","AdministraciÃ³n","Derecho","PsicologÃ­a","DiseÃ±o","ContadurÃ­a"],v:carrera,fn:setCarrera}].map(f=>(
               <select key={f.l} value={f.v} onChange={e=>f.fn(e.target.value)} style={{minHeight:34,padding:"6px 9px",background:T.s2,color:T.t2,border:`1.5px solid ${T.border}`,borderRadius:8,fontSize:13,fontFamily:"inherit",cursor:"pointer",outline:"none"}}>{f.o.map(o=><option key={o} value={o}>{f.l}: {o}</option>)}</select>
             ))}
             {["Success Coach: Todos","Estatus: Todos"].map(l=>(
@@ -1094,11 +1094,11 @@ function ReportesPage() {
       <div style={{display:"grid",gap:14,gridTemplateColumns:"1fr",marginBottom:14}}>
         <div style={{display:"grid",gap:14,gridTemplateColumns:"1fr"}}>
           <div className="card">
-            <div style={{padding:"14px 18px 10px"}}><p className="stitle">Equivalencias por período</p><p style={{fontSize:12,color:T.t3,marginTop:2}}>Últimos meses con solicitudes</p></div>
+            <div style={{padding:"14px 18px 10px"}}><p className="stitle">Equivalencias por perÃ­odo</p><p style={{fontSize:12,color:T.t3,marginTop:2}}>Ãšltimos meses con solicitudes</p></div>
             <div className="divider"/>
             <div style={{padding:"12px 8px"}}>
               {monthlyData.length===0?(
-                <ES icon={<BarChart2 size={36}/>} title="Sin datos aún" desc="Todavía no hay suficientes equivalencias con fecha de solicitud para graficar."/>
+                <ES icon={<BarChart2 size={36}/>} title="Sin datos aÃºn" desc="TodavÃ­a no hay suficientes equivalencias con fecha de solicitud para graficar."/>
               ):(
                 <ResponsiveContainer width="100%" height={200}>
                   <AreaChart data={monthlyData}>
@@ -1115,11 +1115,11 @@ function ReportesPage() {
             </div>
           </div>
           <div className="card">
-            <div style={{padding:"14px 18px 10px"}}><p className="stitle">Carreras con más equivalencias</p><p style={{fontSize:12,color:T.t3,marginTop:2}}>Ranking por programa</p></div>
+            <div style={{padding:"14px 18px 10px"}}><p className="stitle">Carreras con mÃ¡s equivalencias</p><p style={{fontSize:12,color:T.t3,marginTop:2}}>Ranking por programa</p></div>
             <div className="divider"/>
             <div style={{padding:"12px 8px"}}>
               {carreraData.length===0?(
-                <ES icon={<BookOpen size={36}/>} title="Sin datos aún" desc="No hay equivalencias asociadas a alumnos con carrera asignada."/>
+                <ES icon={<BookOpen size={36}/>} title="Sin datos aÃºn" desc="No hay equivalencias asociadas a alumnos con carrera asignada."/>
               ):(
                 <ResponsiveContainer width="100%" height={200}>
                   <BarChart data={carreraData} layout="vertical" barSize={16}>
@@ -1137,7 +1137,7 @@ function ReportesPage() {
       <div className="card">
         <div className="fl-sb" style={{padding:"14px 18px 10px"}}><div><p className="stitle">Productividad por Success Coach</p><p style={{fontSize:12,color:T.t3,marginTop:2}}>Equivalencias procesadas y tiempo promedio</p></div></div>
         <div className="divider"/>
-        <ES icon={<UserCog size={36}/>} title="Sin datos suficientes" desc="Todavía no se registra qué Success Coach atiende a cada alumno o equivalencia en la base de datos. Para activar este reporte hay que agregar esa relación."/>
+        <ES icon={<UserCog size={36}/>} title="Sin datos suficientes" desc="TodavÃ­a no se registra quÃ© Success Coach atiende a cada alumno o equivalencia en la base de datos. Para activar este reporte hay que agregar esa relaciÃ³n."/>
       </div>
     </div>
   );
