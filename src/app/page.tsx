@@ -1000,12 +1000,68 @@ function CarrerasPage() {
 function ReportesPage() {
   const [periodo,setPeriodo]=useState("2026A");
   const [carrera,setCarrera]=useState("todas");
-  const coach_data=[{name:"Luis Castro",equiv:45,tiempo:3.2},{name:"Martha Ruiz",equiv:38,tiempo:4.1},{name:"Ana G√≥mez",equiv:52,tiempo:2.8},{name:"Carlos Vega",equiv:29,tiempo:5.0}];
-  const KPIS=[{l:"Total estudiantes",v:247,c:T.brand,icon:<Users size={16}/>},{l:"Equiv. aprobadas",v:156,c:T.green,icon:<CheckCircle size={16}/>},{l:"Equiv. pendientes",v:38,c:T.amber,icon:<Clock size={16}/>},{l:"Equiv. rechazadas",v:22,c:T.red,icon:<X size={16}/>},{l:"Tiempo promedio",v:"3.4 d√≠as",c:T.blue,icon:<Calendar size={16}/>},{l:"Tasa de aprobaci√≥n",v:"88%",c:T.purple,icon:<Target size={16}/>}];
+  const [loading,setLoading]=useState(true);
+  const [totalEstudiantes,setTotalEstudiantes]=useState(0);
+  const [equivs,setEquivs]=useState<{estatus:string;fecha_solicitud:string;estudiantes?:{carreras?:{nombre:string}}}[]>([]);
+
+  useEffect(()=>{
+    setLoading(true);
+    Promise.all([
+      supabase.from("estudiantes").select("id",{count:"exact",head:true}),
+      supabase.from("equivalencias").select("estatus,fecha_solicitud,estudiantes(carreras(nombre))"),
+    ]).then(([eRes,qRes])=>{
+      setTotalEstudiantes(eRes.count??0);
+      if(qRes.data) setEquivs(qRes.data as any);
+      setLoading(false);
+    });
+  },[]);
+
+  const aprobadas=equivs.filter(e=>e.estatus==="validado").length;
+  const pendientes=equivs.filter(e=>e.estatus==="pendiente").length;
+  const rechazadas=equivs.filter(e=>e.estatus==="rechazado").length;
+  const tasaAprobacion=equivs.length?Math.round((aprobadas/equivs.length)*100):0;
+
+  const KPIS=[
+    {l:"Total estudiantes",v:totalEstudiantes,c:T.brand,icon:<Users size={16}/>},
+    {l:"Equiv. aprobadas",v:aprobadas,c:T.green,icon:<CheckCircle size={16}/>},
+    {l:"Equiv. pendientes",v:pendientes,c:T.amber,icon:<Clock size={16}/>},
+    {l:"Equiv. rechazadas",v:rechazadas,c:T.red,icon:<X size={16}/>},
+    {l:"Total equivalencias",v:equivs.length,c:T.blue,icon:<FileText size={16}/>},
+    {l:"Tasa de aprobaciÛn",v:`${tasaAprobacion}%`,c:T.purple,icon:<Target size={16}/>},
+  ];
+
+  const MESES=["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+  const monthlyData=(()=>{
+    const map:Record<string,{v:number;p:number}>={};
+    equivs.forEach(e=>{
+      if(!e.fecha_solicitud) return;
+      const d=new Date(e.fecha_solicitud);
+      if(isNaN(d.getTime())) return;
+      const key=`${d.getFullYear()}-${String(d.getMonth()).padStart(2,"0")}`;
+      if(!map[key]) map[key]={v:0,p:0};
+      if(e.estatus==="validado") map[key].v++;
+      else if(e.estatus==="en_proceso"||e.estatus==="pendiente"||e.estatus==="en_revision") map[key].p++;
+    });
+    return Object.entries(map)
+      .sort((a,b)=>a[0]<b[0]?-1:1)
+      .slice(-6)
+      .map(([key,val])=>{ const m=Number(key.split("-")[1]); return {m:MESES[m],v:val.v,p:val.p}; });
+  })();
+
+  const carreraData=(()=>{
+    const map:Record<string,number>={};
+    equivs.forEach(e=>{
+      const nombre=e.estudiantes?.carreras?.nombre;
+      if(!nombre) return;
+      map[nombre]=(map[nombre]||0)+1;
+    });
+    return Object.entries(map).sort((a,b)=>b[1]-a[1]).slice(0,6).map(([n,v])=>({n,v}));
+  })();
+
   return (
     <div className="pw">
       <div className="fl-sb fl-w g12 mb20">
-        <div><h2 className="ptitle">Reportes e Indicadores</h2><p style={{fontSize:13.5,color:T.t3,marginTop:3}}>An√°lisis completo de equivalencias acad√©micas</p></div>
+        <div><h2 className="ptitle">Reportes e Indicadores</h2><p style={{fontSize:13.5,color:T.t3,marginTop:3}}>{loading?"CalculandoÖ":`Datos en vivo ∑ ${equivs.length} equivalencias analizadas`}</p></div>
         <div className="fl g8">
           <button className="btn bs" style={{fontSize:13}}><Download size={13}/> PDF</button>
           <button className="btn bs" style={{fontSize:13}}><Download size={13}/> Excel</button>
@@ -1016,7 +1072,7 @@ function ReportesPage() {
         <div className="fl-w g12">
           <div className="fl g8">
             <span style={{fontSize:13,color:T.t2,fontWeight:500}}>Filtros:</span>
-            {[{l:"Per√≠odo",o:["2026A","2025B","2025A"],v:periodo,fn:setPeriodo},{l:"Carrera",o:["todas","Administraci√≥n","Derecho","Psicolog√≠a","Dise√±o","Contadur√≠a"],v:carrera,fn:setCarrera}].map(f=>(
+            {[{l:"PerÌodo",o:["2026A","2025B","2025A"],v:periodo,fn:setPeriodo},{l:"Carrera",o:["todas","AdministraciÛn","Derecho","PsicologÌa","DiseÒo","ContadurÌa"],v:carrera,fn:setCarrera}].map(f=>(
               <select key={f.l} value={f.v} onChange={e=>f.fn(e.target.value)} style={{minHeight:34,padding:"6px 9px",background:T.s2,color:T.t2,border:`1.5px solid ${T.border}`,borderRadius:8,fontSize:13,fontFamily:"inherit",cursor:"pointer",outline:"none"}}>{f.o.map(o=><option key={o} value={o}>{f.l}: {o}</option>)}</select>
             ))}
             {["Success Coach: Todos","Estatus: Todos"].map(l=>(
@@ -1027,7 +1083,7 @@ function ReportesPage() {
         </div>
       </div>
       <div className="kgrid mb16">
-        {KPIS.map((k,i)=>(
+        {loading?Array(6).fill(0).map((_,i)=><div key={i} className="kcard"><Sk w="40%" h={10} mb={14}/><Sk w="55%" h={26}/></div>):KPIS.map((k,i)=>(
           <div key={i} className="kcard" style={{padding:"clamp(14px,2vw,18px)"}}>
             <div className="fl-sb mb10"><div style={{width:32,height:32,borderRadius:8,background:`${k.c}12`,display:"flex",alignItems:"center",justifyContent:"center",color:k.c}}>{k.icon}</div><ArrowUpRight size={13} style={{color:T.t4}}/></div>
             <p style={{fontSize:"clamp(20px,3vw,28px)",fontWeight:900,color:T.t1,letterSpacing:"-.04em",lineHeight:1,marginBottom:4}}>{k.v}</p>
@@ -1037,56 +1093,51 @@ function ReportesPage() {
       </div>
       <div style={{display:"grid",gap:14,gridTemplateColumns:"1fr",marginBottom:14}}>
         <div style={{display:"grid",gap:14,gridTemplateColumns:"1fr"}}>
-          {[
-            {title:"Equivalencias por per√≠odo",sub:"Tendencia mensual 2025‚Äì2026",content:(
-              <ResponsiveContainer width="100%" height={200}>
-                <AreaChart data={LINE_D}>
-                  <defs><linearGradient id="r1" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor={T.green} stopOpacity=".14"/><stop offset="95%" stopColor={T.green} stopOpacity="0"/></linearGradient></defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,.06)" vertical={false}/>
-                  <XAxis dataKey="m" tick={{fontSize:11,fill:T.t4}} tickLine={false} axisLine={false}/>
-                  <YAxis tick={{fontSize:10.5,fill:T.t4}} tickLine={false} axisLine={false}/>
-                  <Tooltip content={<CT/>}/>
-                  <Area type="monotone" dataKey="v" stroke={T.green} strokeWidth={2} fill="url(#r1)" name="Validadas" dot={false}/>
-                  <Line type="monotone" dataKey="p" stroke={T.blue} strokeWidth={2} dot={false} name="En proceso"/>
-                </AreaChart>
-              </ResponsiveContainer>
-            )},
-            {title:"Carreras con m√°s equivalencias",sub:"Ranking por programa",content:(
-              <ResponsiveContainer width="100%" height={200}>
-                <BarChart data={BAR_D} layout="vertical" barSize={16}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,.06)" horizontal={false}/>
-                  <XAxis type="number" tick={{fontSize:11,fill:T.t4}} tickLine={false} axisLine={false}/>
-                  <YAxis type="category" dataKey="n" tick={{fontSize:11.5,fill:T.t4}} tickLine={false} axisLine={false} width={70}/>
-                  <Tooltip content={<CT/>}/><Bar dataKey="v" fill={T.orange} radius={[0,5,5,0]} name="Equivalencias"/>
-                </BarChart>
-              </ResponsiveContainer>
-            )},
-          ].map(({title,sub,content},i)=>(
-            <div key={i} className="card">
-              <div style={{padding:"14px 18px 10px"}}><p className="stitle">{title}</p><p style={{fontSize:12,color:T.t3,marginTop:2}}>{sub}</p></div>
-              <div className="divider"/>
-              <div style={{padding:"12px 8px"}}>{content}</div>
+          <div className="card">
+            <div style={{padding:"14px 18px 10px"}}><p className="stitle">Equivalencias por perÌodo</p><p style={{fontSize:12,color:T.t3,marginTop:2}}>⁄ltimos meses con solicitudes</p></div>
+            <div className="divider"/>
+            <div style={{padding:"12px 8px"}}>
+              {monthlyData.length===0?(
+                <ES icon={<BarChart2 size={36}/>} title="Sin datos a˙n" desc="TodavÌa no hay suficientes equivalencias con fecha de solicitud para graficar."/>
+              ):(
+                <ResponsiveContainer width="100%" height={200}>
+                  <AreaChart data={monthlyData}>
+                    <defs><linearGradient id="r1" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor={T.green} stopOpacity=".14"/><stop offset="95%" stopColor={T.green} stopOpacity="0"/></linearGradient></defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,.06)" vertical={false}/>
+                    <XAxis dataKey="m" tick={{fontSize:11,fill:T.t4}} tickLine={false} axisLine={false}/>
+                    <YAxis tick={{fontSize:10.5,fill:T.t4}} tickLine={false} axisLine={false} allowDecimals={false}/>
+                    <Tooltip content={<CT/>}/>
+                    <Area type="monotone" dataKey="v" stroke={T.green} strokeWidth={2} fill="url(#r1)" name="Validadas" dot={false}/>
+                    <Line type="monotone" dataKey="p" stroke={T.blue} strokeWidth={2} dot={false} name="En proceso/pendiente"/>
+                  </AreaChart>
+                </ResponsiveContainer>
+              )}
             </div>
-          ))}
+          </div>
+          <div className="card">
+            <div style={{padding:"14px 18px 10px"}}><p className="stitle">Carreras con m·s equivalencias</p><p style={{fontSize:12,color:T.t3,marginTop:2}}>Ranking por programa</p></div>
+            <div className="divider"/>
+            <div style={{padding:"12px 8px"}}>
+              {carreraData.length===0?(
+                <ES icon={<BookOpen size={36}/>} title="Sin datos a˙n" desc="No hay equivalencias asociadas a alumnos con carrera asignada."/>
+              ):(
+                <ResponsiveContainer width="100%" height={200}>
+                  <BarChart data={carreraData} layout="vertical" barSize={16}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,.06)" horizontal={false}/>
+                    <XAxis type="number" tick={{fontSize:11,fill:T.t4}} tickLine={false} axisLine={false} allowDecimals={false}/>
+                    <YAxis type="category" dataKey="n" tick={{fontSize:11.5,fill:T.t4}} tickLine={false} axisLine={false} width={110}/>
+                    <Tooltip content={<CT/>}/><Bar dataKey="v" fill={T.orange} radius={[0,5,5,0]} name="Equivalencias"/>
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+          </div>
         </div>
       </div>
       <div className="card">
         <div className="fl-sb" style={{padding:"14px 18px 10px"}}><div><p className="stitle">Productividad por Success Coach</p><p style={{fontSize:12,color:T.t3,marginTop:2}}>Equivalencias procesadas y tiempo promedio</p></div></div>
         <div className="divider"/>
-        <div className="tw">
-          <table aria-label="Productividad por Success Coach">
-            <thead><tr>{["Success Coach","Equivalencias procesadas","Tiempo promedio (d√≠as)","Tasa de aprobaci√≥n","Estatus"].map(h=><th key={h} scope="col">{h}</th>)}</tr></thead>
-            <tbody>{coach_data.map((c,i)=>(
-              <tr key={i}>
-                <td><div className="fl g8"><Av name={c.name} sz={30}/><p style={{fontWeight:600,fontSize:13.5,color:T.t1}}>{c.name}</p></div></td>
-                <td><div style={{display:"flex",alignItems:"center",gap:10}}><div className="pbar" style={{width:80}}><div className="pbar-f" style={{width:`${Math.min(100,c.equiv*2)}%`,background:T.orange}}/></div><span style={{fontSize:13,fontWeight:700,color:T.t1}}>{c.equiv}</span></div></td>
-                <td><span style={{fontSize:14,fontWeight:700,color:c.tiempo<=3.5?T.green:T.amber}}>{c.tiempo} d√≠as</span></td>
-                <td><span style={{fontSize:13,fontWeight:700,color:T.green}}>{Math.round(85+Math.random()*10)}%</span></td>
-                <td><span style={{background:T.greenM,color:T.green,padding:"2px 8px",borderRadius:99,fontSize:12,fontWeight:600}}>Activo</span></td>
-              </tr>
-            ))}</tbody>
-          </table>
-        </div>
+        <ES icon={<UserCog size={36}/>} title="Sin datos suficientes" desc="TodavÌa no se registra quÈ Success Coach atiende a cada alumno o equivalencia en la base de datos. Para activar este reporte hay que agregar esa relaciÛn."/>
       </div>
     </div>
   );
