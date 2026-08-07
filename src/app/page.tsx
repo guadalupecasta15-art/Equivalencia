@@ -185,7 +185,7 @@ type Estudiante = { id:string;matricula:string;nombre:string;correo:string;telef
 type Equivalencia = { id:string;estudiante_id:string;clave_origen:string;nombre_origen:string;institucion_origen:string;nombre_uag:string;clave_uag:string;creditos:number;fecha_solicitud:string;estatus:string;observaciones?:string;estudiantes?:{nombre:string;matricula:string};};
 type KpiData = { total_estudiantes:number;equiv_pendientes:number;equiv_proceso:number;equiv_validadas:number;equiv_rechazadas:number;equiv_finalizadas:number;};
 type AuditLog = { id:string;tabla:string;accion:string;campo?:string;valor_antes?:string;valor_despues?:string;created_at:string;usuario_id?:string;};
-type Carrera = { id:string;nombre:string;clave:string;creditos_total:number;total_materias:number;modalidad:string;};
+type Carrera = { id:string;nombre:string;clave:string;creditos_total:number;total_materias:number;modalidad:string;nivel?:string;};
 type Materia = { id:string;carrera_id:string;clave:string;nombre:string;creditos:number;semestre:number;obligatoria:boolean;};
 type Usuario = { id:string;nombre:string;correo:string;rol:string;activo:boolean;ultimo_login?:string;};
 
@@ -908,6 +908,7 @@ function CarrerasPage() {
   const [selected,setSelected]=useState<Carrera|null>(null);
   const [materias,setMaterias]=useState<Materia[]>([]);
   const [loadingMat,setLoadingMat]=useState(false);
+  const [nivel,setNivel]=useState<"Licenciatura"|"Maestría">("Licenciatura");
   useEffect(()=>{ supabase.from("carreras").select("*").order("nombre").then(({data})=>{ if(data) setList(data as Carrera[]); setLoading(false); }); },[]);
   useEffect(()=>{
     if(!selected){ setMaterias([]); return; }
@@ -917,14 +918,23 @@ function CarrerasPage() {
       setLoadingMat(false);
     });
   },[selected]);
-  const filtered=list.filter(c=>c.nombre.toLowerCase().includes(search.toLowerCase())||c.clave.toLowerCase().includes(search.toLowerCase()));
+  const porNivel=list.filter(c=>c.nivel===nivel);
+  const filtered=porNivel.filter(c=>c.nombre.toLowerCase().includes(search.toLowerCase())||c.clave.toLowerCase().includes(search.toLowerCase()));
   const semestres=[...new Set(materias.map(m=>m.semestre))].sort((a,b)=>a-b);
+  const countLic=list.filter(c=>c.nivel==="Licenciatura").length;
+  const countMaes=list.filter(c=>c.nivel==="Maestría").length;
   return (
     <div className="pw">
       <div className="fl-sb fl-w g12 mb20">
         <div><h2 className="ptitle">Catálogo de Carreras</h2><p style={{fontSize:13.5,color:T.t3,marginTop:3}}>{loading?"Cargando…":`${list.length} programas activos`}</p></div>
         <button className="btn bp" style={{fontSize:13}}><Plus size={13}/> Nueva carrera</button>
       </div>
+      {!selected&&(
+        <div className="tabs mb16">
+          <button className={`tab ${nivel==="Licenciatura"?"on":""}`} onClick={()=>setNivel("Licenciatura")}><GraduationCap size={13}/> Licenciaturas ({countLic})</button>
+          <button className={`tab ${nivel==="Maestría"?"on":""}`} onClick={()=>setNivel("Maestría")}><BookOpen size={13}/> Maestrías ({countMaes})</button>
+        </div>
+      )}
       <div className="fl-w g8 mb16">
         <div style={{position:"relative",flex:1,maxWidth:320}}><Search size={13} style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",color:T.t4}}/><input aria-label="Buscar carrera" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar carrera o clave…" style={{width:"100%",minHeight:36,padding:"7px 12px 7px 32px",background:"#fff",color:T.t1,border:`1.5px solid ${T.border}`,borderRadius:9,fontSize:13.5,fontFamily:"inherit",outline:"none"}} onFocus={e=>e.target.style.borderColor=T.brand} onBlur={e=>e.target.style.borderColor=T.border}/></div>
       </div>
