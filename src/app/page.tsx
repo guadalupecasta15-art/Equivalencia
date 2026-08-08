@@ -259,11 +259,11 @@ const PAGE_TITLES: Record<string,string> = {
   auditoria:"Auditoría",config:"Configuración",expediente:"Expediente",
 };
 
-function buildNav(rol:Rol) {
+function buildNav(rol:Rol, badges:{alumnos?:number;equivalencias?:number}) {
   const all=[
     {id:"dashboard",label:"Dashboard",icon:<LayoutDashboard size={15}/>,section:"p"},
-    {id:"alumnos",label:"Alumnos",icon:<Users size={15}/>,badge:"125",section:"p"},
-    {id:"equivalencias",label:"Equivalencias",icon:<FileText size={15}/>,badge:"38",section:"p"},
+    {id:"alumnos",label:"Alumnos",icon:<Users size={15}/>,badge:badges.alumnos!=null?String(badges.alumnos):undefined,section:"p"},
+    {id:"equivalencias",label:"Equivalencias",icon:<FileText size={15}/>,badge:badges.equivalencias!=null?String(badges.equivalencias):undefined,section:"p"},
     {id:"seguimiento",label:"Seguimiento Académico",icon:<GraduationCap size={15}/>,section:"p"},
     {id:"carreras",label:"Catálogo de Carreras",icon:<BookOpen size={15}/>,section:"a"},
     {id:"reportes",label:"Reportes",icon:<BarChart2 size={15}/>,section:"a"},
@@ -276,9 +276,9 @@ function buildNav(rol:Rol) {
 }
 
 
-function Sidebar({ active, setActive, user, rol, onLogout, open, onClose }: { active:string;setActive:(s:string)=>void;user:User|null;rol:Rol;onLogout:()=>void;open:boolean;onClose:()=>void; }) {
+function Sidebar({ active, setActive, user, rol, badges, onLogout, open, onClose }: { active:string;setActive:(s:string)=>void;user:User|null;rol:Rol;badges:{alumnos?:number;equivalencias?:number};onLogout:()=>void;open:boolean;onClose:()=>void; }) {
   const nombre=user?.email?.split("@")[0]??"Usuario";
-  const nav=buildNav(rol);
+  const nav=buildNav(rol, badges);
   const RL: Record<Rol,string>={decano:"Decano",jefa_admisiones:"Jefa de Admisiones",success_coach:"Success Coach",seguimiento_academico:"Seg. Académico"};
   const p=nav.filter(n=>n.section==="p"), a=nav.filter(n=>n.section==="a");
   return (
@@ -450,8 +450,11 @@ function DashboardPage({ setActive, kpi, rol }: { setActive:(s:string)=>void;kpi
 
 function AlumnosPage({ setActive, setExp }: { setActive:(s:string)=>void;setExp:(e:Estudiante)=>void; }) {
   const [list,setList]=useState<Estudiante[]>([]);
+  const [carreras,setCarreras]=useState<Carrera[]>([]);
   const [loading,setLoading]=useState(true);
   const [search,setSearch]=useState("");
+  const [carreraF,setCarreraF]=useState("todas");
+  const [estatusF,setEstatusF]=useState("todos");
   const [toast,setToast]=useState<{msg:string;ok:boolean}|null>(null);
   const [modal,setModal]=useState<"new"|"edit"|null>(null);
   const [editing,setEditing]=useState<Estudiante|null>(null);
@@ -463,8 +466,14 @@ function AlumnosPage({ setActive, setExp }: { setActive:(s:string)=>void;setExp:
   const dS=useDebounce(search,250);
   const load=useCallback(async()=>{ setLoading(true); const {data}=await supabase.from("estudiantes").select("*,carreras(nombre,clave)").order("created_at",{ascending:false}); if(data) setList(data as Estudiante[]); setLoading(false); },[]);
   useEffect(()=>{load();},[load]);
+  useEffect(()=>{ supabase.from("carreras").select("id,nombre,clave,creditos_total,total_materias,modalidad").order("nombre").then(({data})=>{ if(data) setCarreras(data as Carrera[]); }); },[]);
   useEffect(()=>{ if(modal) setTimeout(()=>firstRef.current?.focus(),60); },[modal]);
-  const filtered=list.filter(a=>a.nombre.toLowerCase().includes(dS.toLowerCase())||a.matricula.includes(dS)||a.correo.toLowerCase().includes(dS.toLowerCase()));
+  const filtered=list.filter(a=>{
+    const matchS=a.nombre.toLowerCase().includes(dS.toLowerCase())||a.matricula.includes(dS)||a.correo.toLowerCase().includes(dS.toLowerCase());
+    const matchC=carreraF==="todas"||a.carrera_id===carreraF;
+    const matchE=estatusF==="todos"||a.estatus===estatusF;
+    return matchS&&matchC&&matchE;
+  });
   function val(){const e:Record<string,string>={};if(!form.nombre.trim()) e.nombre="Requerido";if(!form.matricula.trim()) e.matricula="Requerido";if(!form.correo.trim()) e.correo="Requerido";else if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.correo)) e.correo="Correo no válido";return e;}
   async function save(){const e=val();if(Object.keys(e).length){setFerrs(e);return;}setSaving(true);setFerrs({});if(modal==="new"){const {error}=await supabase.from("estudiantes").insert([form]);if(error) setToast({msg:error.message,ok:false});else{setToast({msg:"Alumno registrado ✓",ok:true});load();setModal(null);}}else if(editing){const {error}=await supabase.from("estudiantes").update(form).eq("id",editing.id);if(error) setToast({msg:error.message,ok:false});else{setToast({msg:"Cambios guardados ✓",ok:true});load();setModal(null);}}setSaving(false);}
   async function handleDel(){if(!confirm) return;const {error}=await supabase.from("estudiantes").delete().eq("id",confirm.id);setConfirm(null);if(error) setToast({msg:error.message,ok:false});else{setToast({msg:"Alumno eliminado",ok:true});load();}}
@@ -506,9 +515,16 @@ function AlumnosPage({ setActive, setExp }: { setActive:(s:string)=>void;setExp:
       </div>
       <div className="fl-w g8 mb16">
         <div style={{flex:1,minWidth:200,maxWidth:340,position:"relative"}}><Search size={13} style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",color:T.t4}} aria-hidden="true"/><input aria-label="Buscar alumno" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Nombre, matrícula o correo…" style={{width:"100%",minHeight:36,padding:"7px 12px 7px 32px",background:"#fff",color:T.t1,border:`1.5px solid ${T.border}`,borderRadius:9,fontSize:13.5,fontFamily:"inherit",outline:"none"}} onFocus={e=>e.target.style.borderColor=T.brand} onBlur={e=>e.target.style.borderColor=T.border}/></div>
-        {[{l:"Carrera: Todas",o:["Administración","Derecho","Psicología","Diseño","Contaduría"]},{l:"Estatus: Todos",o:["Activo","Inactivo","Baja temporal"]},{l:"Success Coach: Todos",o:["Luis Castro","Martha Ruiz"]}].map(f=>(
-          <select key={f.l} aria-label={f.l} style={{minHeight:36,padding:"7px 9px",background:"#fff",color:T.t2,border:`1.5px solid ${T.border}`,borderRadius:9,fontSize:13,fontFamily:"inherit",cursor:"pointer",outline:"none"}}><option>{f.l}</option>{f.o.map(o=><option key={o}>{o}</option>)}</select>
-        ))}
+        <select aria-label="Filtrar por carrera" value={carreraF} onChange={e=>setCarreraF(e.target.value)} style={{minHeight:36,padding:"7px 9px",background:"#fff",color:T.t2,border:`1.5px solid ${T.border}`,borderRadius:9,fontSize:13,fontFamily:"inherit",cursor:"pointer",outline:"none"}}>
+          <option value="todas">Carrera: Todas</option>
+          {carreras.map(c=><option key={c.id} value={c.id}>{c.nombre}</option>)}
+        </select>
+        <select aria-label="Filtrar por estatus" value={estatusF} onChange={e=>setEstatusF(e.target.value)} style={{minHeight:36,padding:"7px 9px",background:"#fff",color:T.t2,border:`1.5px solid ${T.border}`,borderRadius:9,fontSize:13,fontFamily:"inherit",cursor:"pointer",outline:"none"}}>
+          <option value="todos">Estatus: Todos</option>
+          <option value="activo">Activo</option>
+          <option value="inactivo">Inactivo</option>
+          <option value="baja">Baja temporal</option>
+        </select>
       </div>
       <div className="card t2c">
         {loading?(<div style={{padding:"clamp(30px,6vw,50px)",textAlign:"center"}} role="status"><Sp size={20} label="Cargando alumnos"/><p style={{fontSize:13.5,color:T.t3,marginTop:12,fontWeight:500}}>Cargando alumnos…</p></div>)
@@ -533,7 +549,7 @@ function AlumnosPage({ setActive, setExp }: { setActive:(s:string)=>void;setExp:
             </div>
             <div className="tw">
               <table aria-label="Lista de alumnos">
-                <thead><tr>{["ID","Matrícula","Alumno","Carrera","Ciclo","Success Coach","Estatus","Acciones"].map(h=><th key={h} scope="col">{h}</th>)}</tr></thead>
+                <thead><tr>{["ID","Matrícula","Alumno","Carrera","Ciclo","Estatus","Acciones"].map(h=><th key={h} scope="col">{h}</th>)}</tr></thead>
                 <tbody>{filtered.map((a,i)=>(
                   <tr key={a.id}>
                     <td><code style={{background:T.s2,color:T.t3,padding:"2px 6px",borderRadius:5,fontSize:12,fontFamily:"monospace"}}>{i+1}</code></td>
@@ -541,7 +557,6 @@ function AlumnosPage({ setActive, setExp }: { setActive:(s:string)=>void;setExp:
                     <td><div className="fl g9"><Av name={a.nombre} sz={30}/><div><p style={{fontWeight:600,fontSize:13.5,color:T.t1,letterSpacing:"-.01em",lineHeight:1.2}}>{a.nombre}</p><p style={{fontSize:12,color:T.t3,marginTop:1}}>{a.correo}</p></div></div></td>
                     <td style={{fontSize:13.5,color:T.t2}}>{a.carreras?.nombre??"—"}</td>
                     <td><span style={{background:T.blueM,color:T.blue,padding:"2px 8px",borderRadius:99,fontSize:12,fontWeight:600}}>{a.ciclo}</span></td>
-                    <td style={{fontSize:13,color:T.t2}}>Luis Castro</td>
                     <td><Badge s={a.estatus}/></td>
                     <td><div className="fl g5">
                       <button onClick={()=>{setExp(a);setActive("expediente");}} className="bico" aria-label={`Ver expediente de ${a.nombre}`}><Eye size={13}/></button>
@@ -556,7 +571,6 @@ function AlumnosPage({ setActive, setExp }: { setActive:(s:string)=>void;setExp:
         )}
         <div className="fl-sb" style={{padding:"10px 14px",borderTop:`1px solid ${T.border}`,flexWrap:"wrap",gap:8}}>
           <p style={{fontSize:12.5,color:T.t3}}>Mostrando {filtered.length} de {list.length} resultados</p>
-          <div className="fl g5">{["‹","1","2","3","…","25","›"].map((p,i)=><button key={i} style={{width:28,height:28,border:`1px solid ${p==="1"?T.brand:T.border}`,background:p==="1"?T.brand:"#fff",color:p==="1"?"#fff":T.t2,borderRadius:6,fontSize:12,cursor:"pointer",fontWeight:500,display:"flex",alignItems:"center",justifyContent:"center"}}>{p}</button>)}</div>
         </div>
       </div>
     </div>
@@ -1531,7 +1545,7 @@ export default function UAGPage() {
       <style>{CSS}</style>
       <a href="#main-content" className="skip-link">Saltar al contenido principal</a>
       <div style={{display:"flex",minHeight:"100vh",background:T.bg}}>
-        <Sidebar active={active} setActive={v=>{ setActive(v); setExp(null); setSideOpen(false); }} user={user} rol={rol} onLogout={logout} open={sideOpen} onClose={()=>setSideOpen(false)}/>
+        <Sidebar active={active} setActive={v=>{ setActive(v); setExp(null); setSideOpen(false); }} user={user} rol={rol} badges={{alumnos:kpi?.total_estudiantes, equivalencias:kpi?(kpi.equiv_pendientes+kpi.equiv_proceso+kpi.equiv_validadas+kpi.equiv_rechazadas+kpi.equiv_finalizadas):undefined}} onLogout={logout} open={sideOpen} onClose={()=>setSideOpen(false)}/>
         <div className="mw" style={{flex:1,display:"flex",flexDirection:"column",minWidth:0}}>
           <Topbar user={user} onMenu={()=>setSideOpen(p=>!p)} pageTitle={pageTitle}/>
           <main id="main-content" role="main" style={{flex:1,overflowY:"auto",overflowX:"hidden"}} key={active} className="fade-up">
