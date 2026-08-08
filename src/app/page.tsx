@@ -1044,23 +1044,34 @@ function CarrerasPage() {
 
 
 function ReportesPage() {
-  const [periodo,setPeriodo]=useState("2026A");
+  const [periodo,setPeriodo]=useState("todos");
   const [carrera,setCarrera]=useState("todas");
+  const [estatusF,setEstatusF]=useState("todos");
   const [loading,setLoading]=useState(true);
   const [totalEstudiantes,setTotalEstudiantes]=useState(0);
-  const [equivs,setEquivs]=useState<{estatus:string;fecha_solicitud:string;estudiantes?:{carreras?:{nombre:string}}}[]>([]);
+  const [equivsAll,setEquivsAll]=useState<{estatus:string;fecha_solicitud:string;estudiantes?:{ciclo?:string;carreras?:{nombre:string}}}[]>([]);
 
   useEffect(()=>{
     setLoading(true);
     Promise.all([
       supabase.from("estudiantes").select("id",{count:"exact",head:true}),
-      supabase.from("equivalencias").select("estatus,fecha_solicitud,estudiantes(carreras(nombre))"),
+      supabase.from("equivalencias").select("estatus,fecha_solicitud,estudiantes(ciclo,carreras(nombre))"),
     ]).then(([eRes,qRes])=>{
       setTotalEstudiantes(eRes.count??0);
-      if(qRes.data) setEquivs(qRes.data as any);
+      if(qRes.data) setEquivsAll(qRes.data as any);
       setLoading(false);
     });
   },[]);
+
+  const periodosDisponibles=[...new Set(equivsAll.map(e=>e.estudiantes?.ciclo).filter(Boolean))] as string[];
+  const carrerasDisponibles=[...new Set(equivsAll.map(e=>e.estudiantes?.carreras?.nombre).filter(Boolean))] as string[];
+
+  const equivs=equivsAll.filter(e=>{
+    const matchP=periodo==="todos"||e.estudiantes?.ciclo===periodo;
+    const matchC=carrera==="todas"||e.estudiantes?.carreras?.nombre===carrera;
+    const matchE=estatusF==="todos"||e.estatus===estatusF;
+    return matchP&&matchC&&matchE;
+  });
 
   const aprobadas=equivs.filter(e=>e.estatus==="validado").length;
   const pendientes=equivs.filter(e=>e.estatus==="pendiente").length;
@@ -1116,16 +1127,25 @@ function ReportesPage() {
       </div>
       <div className="card mb16" style={{padding:"14px 18px"}}>
         <div className="fl-w g12">
-          <div className="fl g8">
+          <div className="fl g8" style={{flexWrap:"wrap"}}>
             <span style={{fontSize:13,color:T.t2,fontWeight:500}}>Filtros:</span>
-            {[{l:"Período",o:["2026A","2025B","2025A"],v:periodo,fn:setPeriodo},{l:"Carrera",o:["todas","Administración","Derecho","Psicología","Diseño","Contaduría"],v:carrera,fn:setCarrera}].map(f=>(
-              <select key={f.l} value={f.v} onChange={e=>f.fn(e.target.value)} style={{minHeight:34,padding:"6px 9px",background:T.s2,color:T.t2,border:`1.5px solid ${T.border}`,borderRadius:8,fontSize:13,fontFamily:"inherit",cursor:"pointer",outline:"none"}}>{f.o.map(o=><option key={o} value={o}>{f.l}: {o}</option>)}</select>
-            ))}
-            {["Success Coach: Todos","Estatus: Todos"].map(l=>(
-              <select key={l} style={{minHeight:34,padding:"6px 9px",background:T.s2,color:T.t2,border:`1.5px solid ${T.border}`,borderRadius:8,fontSize:13,fontFamily:"inherit",cursor:"pointer",outline:"none"}}><option>{l}</option></select>
-            ))}
+            <select value={periodo} onChange={e=>setPeriodo(e.target.value)} style={{minHeight:34,padding:"6px 9px",background:T.s2,color:T.t2,border:`1.5px solid ${T.border}`,borderRadius:8,fontSize:13,fontFamily:"inherit",cursor:"pointer",outline:"none"}}>
+              <option value="todos">Período: Todos</option>
+              {periodosDisponibles.map(p=><option key={p} value={p}>Período: {p}</option>)}
+            </select>
+            <select value={carrera} onChange={e=>setCarrera(e.target.value)} style={{minHeight:34,padding:"6px 9px",background:T.s2,color:T.t2,border:`1.5px solid ${T.border}`,borderRadius:8,fontSize:13,fontFamily:"inherit",cursor:"pointer",outline:"none"}}>
+              <option value="todas">Carrera: Todas</option>
+              {carrerasDisponibles.map(c=><option key={c} value={c}>{c}</option>)}
+            </select>
+            <select value={estatusF} onChange={e=>setEstatusF(e.target.value)} style={{minHeight:34,padding:"6px 9px",background:T.s2,color:T.t2,border:`1.5px solid ${T.border}`,borderRadius:8,fontSize:13,fontFamily:"inherit",cursor:"pointer",outline:"none"}}>
+              <option value="todos">Estatus: Todos</option>
+              {["pendiente","en_proceso","en_revision","validado","rechazado","finalizado"].map(s=><option key={s} value={s}>Estatus: {s}</option>)}
+            </select>
+            <span title="Aún no se registra qué Success Coach atiende cada equivalencia" style={{minHeight:34,padding:"6px 9px",background:T.s3,color:T.t4,border:`1.5px dashed ${T.border}`,borderRadius:8,fontSize:13,display:"flex",alignItems:"center",cursor:"not-allowed"}}>Success Coach: no disponible</span>
           </div>
-          <button className="btn bs" style={{fontSize:13,padding:"7px 12px",marginLeft:"auto"}}><RefreshCw size={13}/> Aplicar</button>
+          {(periodo!=="todos"||carrera!=="todas"||estatusF!=="todos")&&(
+            <button className="btn bs" style={{fontSize:13,padding:"7px 12px",marginLeft:"auto"}} onClick={()=>{setPeriodo("todos");setCarrera("todas");setEstatusF("todos");}}><X size={13}/> Limpiar filtros</button>
+          )}
         </div>
       </div>
       <div className="kgrid mb16">
