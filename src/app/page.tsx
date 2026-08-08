@@ -604,10 +604,26 @@ function ExpedientePage({ estudiante, onBack }: { estudiante:Estudiante;onBack:(
   const [tab,setTab]=useState("general");
   const [equivs,setEquivs]=useState<Equivalencia[]>([]);
   const [loadE,setLoadE]=useState(true);
-  const avance=67;
-  const SEMS=[{s:1,pct:100,lbl:"Completo"},{s:2,pct:100,lbl:"Completo"},{s:3,pct:100,lbl:"Completo"},{s:4,pct:70,lbl:"70%"},{s:5,pct:0,lbl:"Pendiente"},{s:6,pct:0,lbl:"Pendiente"}];
-  const HIST=[{time:"11:00 AM",user:"Admisiones",action:"Cambió estatus a Activo",color:T.orange},{time:"10:35 AM",user:"Decano",action:"Subió dictamen oficial",color:T.brand},{time:"10:22 AM",user:"Seguimiento Académico",action:"Agregó equivalencia: Derecho Civil I",color:T.green},{time:"10:15 AM",user:"Success Coach",action:"Modificó el programa a Derecho",color:T.blue},{time:"09:45 AM",user:"Sistema",action:"Alumno registrado en el sistema",color:T.gray}];
+  const [materias,setMaterias]=useState<Materia[]>([]);
+  const [loadM,setLoadM]=useState(true);
   useEffect(()=>{ supabase.from("equivalencias").select("*").eq("estudiante_id",estudiante.id).then(({data})=>{ if(data) setEquivs(data as Equivalencia[]); setLoadE(false); }); },[estudiante.id]);
+  useEffect(()=>{
+    if(!estudiante.carrera_id){ setMaterias([]); setLoadM(false); return; }
+    supabase.from("materias").select("*").eq("carrera_id",estudiante.carrera_id).order("semestre",{ascending:true}).order("clave",{ascending:true}).then(({data})=>{ if(data) setMaterias(data as Materia[]); setLoadM(false); });
+  },[estudiante.carrera_id]);
+  const loading=loadE||loadM;
+  const equivMap:Record<string,{estatus:string;creditos:number}>={};
+  equivs.forEach(e=>{ if(e.clave_uag) equivMap[e.clave_uag]={estatus:e.estatus,creditos:e.creditos}; });
+  const totalMaterias=materias.length;
+  const conEquivalencia=materias.filter(m=>equivMap[m.clave]).length;
+  const validadas=materias.filter(m=>equivMap[m.clave]?.estatus==="validado").length;
+  const enProceso=materias.filter(m=>{ const es=equivMap[m.clave]?.estatus; return es==="en_proceso"||es==="en_revision"; }).length;
+  const sinRegistro=totalMaterias-conEquivalencia;
+  const creditosTotal=materias.reduce((s,m)=>s+(m.creditos||0),0);
+  const creditosObtenidos=materias.filter(m=>equivMap[m.clave]?.estatus==="validado").reduce((s,m)=>s+(m.creditos||0),0);
+  const creditosFaltantes=creditosTotal-creditosObtenidos;
+  const avance=creditosTotal>0?Math.round((creditosObtenidos/creditosTotal)*100):0;
+  const semestres=[...new Set(materias.map(m=>m.semestre))].sort((a,b)=>a-b);
   const tabs=[{id:"general",label:"Información general",icon:<Info size={13}/>},{id:"equivalencias",label:"Equivalencias",icon:<FileText size={13}/>},{id:"academico",label:"Avance académico",icon:<GraduationCap size={13}/>},{id:"documentos",label:"Documentos",icon:<FolderOpen size={13}/>},{id:"historial",label:"Historial",icon:<History size={13}/>}];
   return (
     <div className="pw">
@@ -631,7 +647,7 @@ function ExpedientePage({ estudiante, onBack }: { estudiante:Estudiante;onBack:(
               </div>
             </div>
             <div style={{textAlign:"center",padding:"14px 20px",background:"rgba(255,255,255,.1)",borderRadius:12,flexShrink:0}}>
-              <p style={{fontSize:36,fontWeight:900,color:T.orange,lineHeight:1,letterSpacing:"-.04em"}}>{avance}%</p>
+              <p style={{fontSize:36,fontWeight:900,color:T.orange,lineHeight:1,letterSpacing:"-.04em"}}>{loading?"…":`${avance}%`}</p>
               <p style={{fontSize:11.5,color:"rgba(255,255,255,.65)",marginTop:5,lineHeight:1}}>Avance académico</p>
               <div style={{height:5,background:"rgba(255,255,255,.2)",borderRadius:99,marginTop:8,overflow:"hidden"}}><div style={{height:"100%",width:`${avance}%`,background:T.orange,borderRadius:99}}/></div>
             </div>
@@ -644,18 +660,20 @@ function ExpedientePage({ estudiante, onBack }: { estudiante:Estudiante;onBack:(
       {tab==="general"&&(
         <div className="card" style={{padding:"clamp(16px,3vw,24px)"}}>
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(min(200px,100%),1fr))",gap:14,marginBottom:22}}>
-            {[{l:"Nombre completo",v:estudiante.nombre},{l:"Matrícula",v:estudiante.matricula},{l:"Correo",v:estudiante.correo},{l:"Teléfono",v:estudiante.telefono||"—"},{l:"Carrera",v:estudiante.carreras?.nombre||"—"},{l:"Clave",v:estudiante.carreras?.clave||"—"},{l:"Ciclo",v:estudiante.ciclo},{l:"Fecha de ingreso",v:fmtDate(estudiante.fecha_ingreso)},{l:"Success Coach",v:"Luis Castro"},{l:"Estatus",v:<Badge s={estudiante.estatus}/>}].map(({l,v},i)=>(
+            {[{l:"Nombre completo",v:estudiante.nombre},{l:"Matrícula",v:estudiante.matricula},{l:"Correo",v:estudiante.correo},{l:"Teléfono",v:estudiante.telefono||"—"},{l:"Carrera",v:estudiante.carreras?.nombre||"—"},{l:"Clave",v:estudiante.carreras?.clave||"—"},{l:"Ciclo",v:estudiante.ciclo},{l:"Fecha de ingreso",v:fmtDate(estudiante.fecha_ingreso)},{l:"Estatus",v:<Badge s={estudiante.estatus}/>}].map(({l,v},i)=>(
               <div key={i}><p style={{fontSize:11,color:T.t4,fontWeight:700,textTransform:"uppercase",letterSpacing:".06em",marginBottom:4,lineHeight:1}}>{l}</p><p style={{fontSize:14,color:T.t1,fontWeight:500,lineHeight:1.4}}>{v}</p></div>
             ))}
           </div>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(min(140px,100%),1fr))",gap:10}}>
-            {[{l:"Total materias",v:48,c:T.brand},{l:"Equiv. aprobadas",v:8,c:T.green},{l:"En proceso",v:3,c:T.blue},{l:"Pendientes",v:14,c:T.amber},{l:"Créditos obtenidos",v:134,c:T.purple},{l:"Créditos faltantes",v:66,c:T.t3}].map(({l,v,c},i)=>(
-              <div key={i} style={{background:T.s2,borderRadius:10,padding:"12px 14px",border:`1px solid ${T.border}`}}>
-                <p style={{fontSize:"clamp(20px,3vw,26px)",fontWeight:900,color:c,letterSpacing:"-.04em",lineHeight:1,marginBottom:4}}>{v}</p>
-                <p style={{fontSize:11.5,color:T.t3,lineHeight:1.3}}>{l}</p>
-              </div>
-            ))}
-          </div>
+          {loading?(<div style={{padding:20,textAlign:"center"}} role="status"><Sp size={16} label="Calculando avance"/></div>):(
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(min(140px,100%),1fr))",gap:10}}>
+              {[{l:"Total materias",v:totalMaterias,c:T.brand},{l:"Equiv. validadas",v:validadas,c:T.green},{l:"En proceso",v:enProceso,c:T.blue},{l:"Sin registro",v:sinRegistro,c:T.amber},{l:"Créditos obtenidos",v:creditosObtenidos,c:T.purple},{l:"Créditos faltantes",v:creditosFaltantes,c:T.t3}].map(({l,v,c},i)=>(
+                <div key={i} style={{background:T.s2,borderRadius:10,padding:"12px 14px",border:`1px solid ${T.border}`}}>
+                  <p style={{fontSize:"clamp(20px,3vw,26px)",fontWeight:900,color:c,letterSpacing:"-.04em",lineHeight:1,marginBottom:4}}>{v}</p>
+                  <p style={{fontSize:11.5,color:T.t3,lineHeight:1.3}}>{l}</p>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
       {tab==="equivalencias"&&(
@@ -698,6 +716,9 @@ function ExpedientePage({ estudiante, onBack }: { estudiante:Estudiante;onBack:(
         <div style={{display:"grid",gap:14}}>
           <div className="card" style={{padding:"clamp(16px,3vw,22px)"}}>
             <p className="stitle" style={{marginBottom:16}}>Avance general de la carrera</p>
+            {loading?(<div style={{padding:20,textAlign:"center"}} role="status"><Sp size={16} label="Calculando avance"/></div>):totalMaterias===0?(
+              <ES icon={<BookOpen size={36}/>} title="Sin plan de estudios" desc="Esta carrera todavía no tiene su malla curricular cargada, o el alumno no tiene carrera asignada."/>
+            ):(
             <div className="fl g20" style={{flexWrap:"wrap",gap:"clamp(16px,3vw,32px)",alignItems:"center"}}>
               <div style={{position:"relative",width:130,height:130,flexShrink:0}} role="img" aria-label={`${avance}% de avance`}>
                 <svg width="130" height="130" style={{transform:"rotate(-90deg)"}}>
@@ -710,73 +731,47 @@ function ExpedientePage({ estudiante, onBack }: { estudiante:Estudiante;onBack:(
                 </div>
               </div>
               <div style={{flex:1,minWidth:160}}>
-                {[{l:"Materias cursadas",v:26},{l:"Materias equivalentes",v:8},{l:"Pendientes por cursar",v:14},{l:"Total de materias",v:48},{l:"Créditos obtenidos",v:134},{l:"Créditos faltantes",v:66}].map(({l,v})=>(
+                {[{l:"Con equivalencia",v:conEquivalencia},{l:"Validadas",v:validadas},{l:"Sin registro",v:sinRegistro},{l:"Total de materias",v:totalMaterias},{l:"Créditos obtenidos",v:creditosObtenidos},{l:"Créditos faltantes",v:creditosFaltantes}].map(({l,v})=>(
                   <div key={l} className="stat-row"><p style={{fontSize:13.5,color:T.t2}}>{l}</p><p style={{fontSize:14,fontWeight:700,color:T.t1}}>{v}</p></div>
                 ))}
               </div>
             </div>
+            )}
           </div>
+          {totalMaterias>0&&(
           <div className="card" style={{padding:"clamp(16px,3vw,22px)"}}>
             <p className="stitle" style={{marginBottom:14}}>Avance por semestre</p>
             <div style={{display:"flex",flexDirection:"column",gap:10}}>
-              {SEMS.map(({s,pct,lbl})=>(
-                <div key={s} className="fl-sb g12">
-                  <p style={{fontSize:13.5,color:T.t2,minWidth:90}}>Semestre {s}</p>
-                  <div className="pbar" style={{flex:1}}><div className="pbar-f" style={{width:`${pct}%`,background:pct===100?T.green:pct>0?T.orange:T.grayM}}/></div>
-                  <p style={{fontSize:12.5,fontWeight:600,color:pct===100?T.green:pct>0?T.orange:T.t4,minWidth:60,textAlign:"right"}}>{lbl}</p>
-                </div>
-              ))}
+              {semestres.map(sem=>{
+                const delSem=materias.filter(m=>m.semestre===sem);
+                const validadasSem=delSem.filter(m=>equivMap[m.clave]?.estatus==="validado").length;
+                const pct=delSem.length>0?Math.round((validadasSem/delSem.length)*100):0;
+                return (
+                  <div key={sem} className="fl-sb g12">
+                    <p style={{fontSize:13.5,color:T.t2,minWidth:90}}>Semestre {sem}</p>
+                    <div className="pbar" style={{flex:1}}><div className="pbar-f" style={{width:`${pct}%`,background:pct===100?T.green:pct>0?T.orange:T.grayM}}/></div>
+                    <p style={{fontSize:12.5,fontWeight:600,color:pct===100?T.green:pct>0?T.orange:T.t4,minWidth:70,textAlign:"right"}}>{validadasSem}/{delSem.length} materias</p>
+                  </div>
+                );
+              })}
             </div>
           </div>
+          )}
         </div>
       )}
       {tab==="documentos"&&(
         <div className="card" style={{padding:"clamp(16px,3vw,22px)"}}>
-          <div className="fl-sb mb16"><p className="stitle">Documentación Oficial del Decano</p><button className="btn bp" style={{fontSize:13,padding:"7px 14px"}}><Upload size={13}/> Subir documento</button></div>
-          <div style={{border:"2px dashed rgba(0,0,0,.1)",borderRadius:12,padding:"clamp(32px,6vw,52px) 24px",textAlign:"center",marginBottom:16,cursor:"pointer",background:T.s2}} onDragOver={e=>e.preventDefault()}>
-            <Upload size={32} style={{color:T.t4,marginBottom:12}} aria-hidden="true"/>
-            <p style={{fontSize:14,fontWeight:600,color:T.t2,marginBottom:5}}>Arrastra archivos o haz clic para subir</p>
-            <p style={{fontSize:13,color:T.t3}}>PDF, Word, Excel · Máx. 25 MB</p>
-          </div>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(min(200px,100%),1fr))",gap:10}}>
-            {[{name:"Kardex_JuanPerez.pdf",type:"PDF",date:"10/03/2026",size:"2.4 MB",color:T.red},{name:"Certificado_Parcial.pdf",type:"PDF",date:"10/03/2026",size:"1.1 MB",color:T.red},{name:"Dictamen_Oficial.pdf",type:"PDF",date:"12/03/2026",size:"540 KB",color:T.red}].map((d,i)=>(
-              <div key={i} style={{border:`1px solid ${T.border}`,borderRadius:10,padding:"12px 14px",background:"#fff",transition:"all .13s"}} onMouseEnter={e=>{e.currentTarget.style.boxShadow=T.sh3;e.currentTarget.style.borderColor=T.brand;}} onMouseLeave={e=>{e.currentTarget.style.boxShadow="none";e.currentTarget.style.borderColor=T.border;}}>
-                <div className="fl g8 mb8">
-                  <div style={{width:36,height:36,borderRadius:8,background:T.redL,display:"flex",alignItems:"center",justifyContent:"center",color:T.red,flexShrink:0}}><FileText size={16}/></div>
-                  <div style={{flex:1,minWidth:0}}><p style={{fontSize:12.5,fontWeight:600,color:T.t1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{d.name}</p><p style={{fontSize:11,color:T.t3,marginTop:1}}>{d.date} · {d.size}</p></div>
-                </div>
-                <div className="fl g6">
-                  <button className="btn bs" style={{flex:1,fontSize:12,padding:"5px 8px",minHeight:30,justifyContent:"center"}}><Eye size={11}/> Ver</button>
-                  <button className="btn bs" style={{flex:1,fontSize:12,padding:"5px 8px",minHeight:30,justifyContent:"center"}}><Download size={11}/> Descargar</button>
-                  <button className="bico" style={{width:30,height:30,color:T.red,borderColor:"rgba(153,27,27,.2)"}} aria-label="Eliminar documento"><Trash2 size={12}/></button>
-                </div>
-              </div>
-            ))}
-          </div>
+          <ES icon={<FolderOpen size={40}/>} title="Documentos pendientes de configurar" desc="Todavía no se definió cómo se van a almacenar los documentos de los alumnos (por ejemplo, enlaces a Drive o subida directa). En cuanto se resuelva, aquí aparecerán los archivos reales."/>
         </div>
       )}
       {tab==="historial"&&(
         <div className="card" style={{padding:"clamp(16px,3vw,22px)"}}>
-          <div className="fl-sb mb16"><p className="stitle">Historial de cambios</p><button className="btn bs" style={{fontSize:12,padding:"6px 12px"}}><Download size={12}/> Exportar</button></div>
-          <div>{HIST.map((h,i)=>(
-            <div key={i} className="tl-item">
-              <div className="tl-dot" style={{background:`${h.color}18`,color:h.color}}>{i+1}</div>
-              <div style={{flex:1,paddingTop:4}}>
-                <p style={{fontSize:13.5,fontWeight:600,color:T.t1,lineHeight:1.3}}>{h.action}</p>
-                <div className="fl g10" style={{marginTop:4}}>
-                  <p style={{fontSize:12,color:h.color,fontWeight:600}}>{h.user}</p>
-                  <p style={{fontSize:12,color:T.t4}}>{h.time} · Hoy</p>
-                </div>
-              </div>
-            </div>
-          ))}</div>
+          <ES icon={<History size={40}/>} title="Historial no disponible aún" desc="Todavía no se registra un historial de cambios por alumno individual en la base de datos."/>
         </div>
       )}
     </div>
   );
 }
-
-
 function EquivalenciasPage() {
   const [list,setList]=useState<Equivalencia[]>([]);
   const [loading,setLoading]=useState(true);
