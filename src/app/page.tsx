@@ -359,6 +359,15 @@ function DashboardPage({ setActive, kpi, rol, nombre }: { setActive:(s:string)=>
     {label:"Pendientes",value:kpi?.equiv_pendientes,icon:<AlertCircle size={15}/>,accent:T.amber,abg:"rgba(146,64,14,.07)",trend:(kpi?.equiv_pendientes??0)>0?"Requieren atención":"Sin pendientes",up:false},
     {label:"Rechazadas",value:kpi?.equiv_rechazadas,icon:<X size={15}/>,accent:T.red,abg:"rgba(153,27,27,.07)",trend:`${pct(kpi?.equiv_rechazadas??0)}% del total`,up:null},
   ];
+  const [actividad,setActividad]=useState<{nombre:string;materia:string;estatus:string;fecha:string}[]>([]);
+  const [loadingActividad,setLoadingActividad]=useState(true);
+  useEffect(()=>{
+    supabase.from("equivalencias").select("nombre_uag,estatus,created_at,estudiantes(nombre)").order("created_at",{ascending:false}).limit(5).then(({data})=>{
+      if(data) setActividad(data.map((e:any)=>({nombre:e.estudiantes?.nombre??"Alumno",materia:e.nombre_uag,estatus:e.estatus,fecha:e.created_at})));
+      setLoadingActividad(false);
+    });
+  },[]);
+  const ESTATUS_COLOR:Record<string,string>={pendiente:T.amber,en_proceso:T.blue,en_revision:T.purple,validado:T.green,rechazado:T.red,finalizado:T.gray};
   return (
     <div className="pw">
       <div className="fl-sb fl-w g12 mb20">
@@ -420,6 +429,16 @@ function DashboardPage({ setActive, kpi, rol, nombre }: { setActive:(s:string)=>
         </div>
       </div>
       <div style={{display:"grid",gap:"clamp(11px,1.5vw,15px)",gridTemplateColumns:"1fr",marginBottom:0}}>
+        <div className="card">
+          <div className="fl-sb" style={{padding:"14px 18px 10px"}}>
+            <div className="fl g8"><Activity size={15} style={{color:T.brand}}/><p className="stitle">Actividad Reciente</p></div>
+          </div>
+          <div className="divider"/>
+          {loadingActividad?(<div style={{padding:24,textAlign:"center"}} role="status"><Sp size={16} label="Cargando actividad"/></div>)
+          :actividad.length===0?(<div style={{padding:"20px 18px"}}><ES icon={<Activity size={32}/>} title="Sin actividad aún" desc="Cuando se registren equivalencias aparecerán aquí."/></div>):(
+          <div style={{padding:"12px 18px"}}>{actividad.map((f,i)=><div key={i} style={{display:"flex",gap:10,padding:"9px 0",borderBottom:i<actividad.length-1?"1px solid rgba(0,0,0,.05)":"none"}}><div style={{width:8,height:8,borderRadius:"50%",background:ESTATUS_COLOR[f.estatus]??T.gray,marginTop:5,flexShrink:0}} aria-hidden="true"/><div><p style={{fontSize:13,color:T.t1,lineHeight:1.4}}>{f.nombre} — {f.materia} <Badge s={f.estatus}/></p><p style={{fontSize:11.5,color:T.t4,marginTop:2}}>{fmtDate(f.fecha)} {fmtTime(f.fecha)}</p></div></div>)}</div>
+          )}
+        </div>
         <div className="card">
           <div className="fl-sb" style={{padding:"14px 18px 10px"}}><p className="stitle">Acciones rápidas</p><Sparkles size={13} style={{color:T.orange}}/></div>
           <div className="divider"/>
