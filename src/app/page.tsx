@@ -326,8 +326,6 @@ function Topbar({ user, onMenu, pageTitle }: { user:User|null;onMenu:()=>void;pa
 }
 
 
-const LINE_D=[{m:"Ene",v:10,p:20,pe:15},{m:"Feb",v:18,p:28,pe:14},{m:"Mar",v:30,p:35,pe:12},{m:"Abr",v:38,p:40,pe:16},{m:"May",v:48,p:45,pe:18},{m:"Jun",v:56,p:48,pe:21}];
-const BAR_D=[{n:"Admón.",v:65},{n:"Derecho",v:72},{n:"Psicología",v:58},{n:"Diseño",v:80},{n:"Contaduría",v:61}];
 const PIE_C=[T.amber,T.blue,T.purple,T.green,T.red,T.gray];
 
 function DashboardPage({ setActive, kpi, rol, nombre }: { setActive:(s:string)=>void;kpi:KpiData|null;rol:Rol;nombre:string }) {
@@ -424,22 +422,6 @@ function DashboardPage({ setActive, kpi, rol, nombre }: { setActive:(s:string)=>
           <div style={{padding:"12px 8px"}} role="img" aria-label="Distribución por estatus">
             <ResponsiveContainer width="100%" height={180}>
               <PieChart><Pie data={PIE_D} cx="50%" cy="44%" innerRadius={44} outerRadius={65} dataKey="value" paddingAngle={3} strokeWidth={0}>{PIE_D.map((_,i)=><Cell key={i} fill={PIE_C[i]}/>)}</Pie><Tooltip contentStyle={{borderRadius:10,border:"none",fontSize:12.5}}/><Legend iconSize={7} wrapperStyle={{fontSize:11.5,color:T.t3,paddingTop:6,lineHeight:1.8}}/></PieChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      </div>
-      <div style={{display:"grid",gap:"clamp(11px,1.5vw,15px)",gridTemplateColumns:"1fr",marginBottom:"clamp(12px,2vw,16px)"}}>
-        <div className="card">
-          <div style={{padding:"14px 18px 10px"}}><p className="stitle">Avance por carrera</p><p style={{fontSize:12,color:T.t3,marginTop:2}}>% completado</p></div>
-          <div className="divider"/>
-          <div style={{padding:"12px 4px"}} role="img" aria-label="Avance por carrera">
-            <ResponsiveContainer width="100%" height={160}>
-              <BarChart data={BAR_D} layout="vertical" barSize={14}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,.06)" horizontal={false}/>
-                <XAxis type="number" tick={{fontSize:11,fill:T.t4}} tickLine={false} axisLine={false} domain={[0,100]} tickFormatter={v=>`${v}%`}/>
-                <YAxis type="category" dataKey="n" tick={{fontSize:11.5,fill:T.t4}} tickLine={false} axisLine={false} width={66}/>
-                <Tooltip content={<CT/>}/><Bar dataKey="v" fill={T.orange} radius={[0,5,5,0]} name="Avance" unit="%"/>
-              </BarChart>
             </ResponsiveContainer>
           </div>
         </div>
