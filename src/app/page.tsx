@@ -330,8 +330,27 @@ const LINE_D=[{m:"Ene",v:10,p:20,pe:15},{m:"Feb",v:18,p:28,pe:14},{m:"Mar",v:30,
 const BAR_D=[{n:"Admón.",v:65},{n:"Derecho",v:72},{n:"Psicología",v:58},{n:"Diseño",v:80},{n:"Contaduría",v:61}];
 const PIE_C=[T.amber,T.blue,T.purple,T.green,T.red,T.gray];
 
-function DashboardPage({ setActive, kpi, rol }: { setActive:(s:string)=>void;kpi:KpiData|null;rol:Rol }) {
+function DashboardPage({ setActive, kpi, rol, nombre }: { setActive:(s:string)=>void;kpi:KpiData|null;rol:Rol;nombre:string }) {
   const L=kpi===null;
+  const [monthly,setMonthly]=useState<{m:string;v:number;p:number}[]>([]);
+  useEffect(()=>{
+    supabase.from("equivalencias").select("estatus,fecha_solicitud").then(({data})=>{
+      if(!data) return;
+      const MESES=["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+      const map:Record<string,{v:number;p:number}>={};
+      data.forEach((e:any)=>{
+        if(!e.fecha_solicitud) return;
+        const d=new Date(e.fecha_solicitud);
+        if(isNaN(d.getTime())) return;
+        const key=`${d.getFullYear()}-${String(d.getMonth()).padStart(2,"0")}`;
+        if(!map[key]) map[key]={v:0,p:0};
+        if(e.estatus==="validado") map[key].v++;
+        else if(e.estatus==="en_proceso"||e.estatus==="pendiente"||e.estatus==="en_revision") map[key].p++;
+      });
+      const arr=Object.entries(map).sort((a,b)=>a[0]<b[0]?-1:1).slice(-6).map(([key,val])=>{ const m=Number(key.split("-")[1]); return {m:MESES[m],v:val.v,p:val.p}; });
+      setMonthly(arr);
+    });
+  },[]);
   const PIE_D=[{name:"Pendiente",value:kpi?.equiv_pendientes??0},{name:"En proceso",value:kpi?.equiv_proceso??0},{name:"En revisión",value:0},{name:"Validadas",value:kpi?.equiv_validadas??0},{name:"Rechazadas",value:kpi?.equiv_rechazadas??0},{name:"Finalizadas",value:kpi?.equiv_finalizadas??0}];
   const KPIS=[
     {label:"Total alumnos",value:kpi?.total_estudiantes,icon:<Users size={15}/>,accent:T.brand,abg:"rgba(122,37,49,.07)",trend:"+12 este ciclo",up:true},
@@ -352,7 +371,7 @@ function DashboardPage({ setActive, kpi, rol }: { setActive:(s:string)=>void;kpi
       <div className="fl-sb fl-w g12 mb20">
         <div>
           <p style={{fontSize:12,color:T.t3,marginBottom:4,display:"flex",alignItems:"center",gap:6,lineHeight:1}}><span style={{width:6,height:6,borderRadius:"50%",background:"#4ade80",display:"inline-block"}} aria-hidden="true"/>En línea · {new Date().toLocaleDateString("es-MX",{weekday:"long",day:"numeric",month:"long"})}</p>
-          <h2 className="ptitle">¡Bienvenida, Candy García! 👋</h2>
+          <h2 className="ptitle">¡Bienvenida, {nombre}! 👋</h2>
         </div>
         <div className="fl g8">
           <button className="btn bs" style={{fontSize:13}}><RefreshCw size={13} aria-hidden="true"/> Actualizar</button>
@@ -377,21 +396,24 @@ function DashboardPage({ setActive, kpi, rol }: { setActive:(s:string)=>void;kpi
           </div>
           <div className="divider"/>
           <div style={{padding:"12px 8px"}} role="img" aria-label="Gráfica de equivalencias por período">
+            {monthly.length===0?(
+              <ES icon={<BarChart2 size={36}/>} title="Sin datos aún" desc="Todavía no hay suficientes equivalencias con fecha de solicitud para graficar."/>
+            ):(
             <ResponsiveContainer width="100%" height={180}>
-              <AreaChart data={LINE_D}>
+              <AreaChart data={monthly}>
                 <defs>
                   <linearGradient id="gV" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor={T.green} stopOpacity=".14"/><stop offset="95%" stopColor={T.green} stopOpacity="0"/></linearGradient>
                   <linearGradient id="gP" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor={T.blue} stopOpacity=".12"/><stop offset="95%" stopColor={T.blue} stopOpacity="0"/></linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,.06)" vertical={false}/>
                 <XAxis dataKey="m" tick={{fontSize:11,fill:T.t4}} tickLine={false} axisLine={false}/>
-                <YAxis tick={{fontSize:10.5,fill:T.t4}} tickLine={false} axisLine={false}/>
+                <YAxis tick={{fontSize:10.5,fill:T.t4}} tickLine={false} axisLine={false} allowDecimals={false}/>
                 <Tooltip content={<CT/>}/>
                 <Area type="monotone" dataKey="v" stroke={T.green} strokeWidth={2} fill="url(#gV)" name="Validadas" dot={false}/>
-                <Area type="monotone" dataKey="p" stroke={T.blue} strokeWidth={2} fill="url(#gP)" name="En proceso" dot={false}/>
-                <Line type="monotone" dataKey="pe" stroke={T.amber} strokeWidth={1.5} dot={false} name="Pendientes" strokeDasharray="4 3"/>
+                <Area type="monotone" dataKey="p" stroke={T.blue} strokeWidth={2} fill="url(#gP)" name="En proceso/pendiente" dot={false}/>
               </AreaChart>
             </ResponsiveContainer>
+            )}
           </div>
         </div>
         <div className="card">
@@ -1471,6 +1493,7 @@ function LoginPage({ onLogin }: { onLogin:(u:User)=>void }) {
 export default function UAGPage() {
   const [user,setUser]=useState<User|null>(null);
   const [rol,setRol]=useState<Rol>("jefa_admisiones");
+  const [nombreUsuario,setNombreUsuario]=useState<string|null>(null);
   const [active,setActive]=useState("dashboard");
   const [kpi,setKpi]=useState<KpiData|null>(null);
   const [checking,setChecking]=useState(true);
@@ -1486,8 +1509,11 @@ export default function UAGPage() {
   useEffect(()=>{
     if(!user) return;
     (async()=>{
-      const {data:uData}=await supabase.from("usuarios").select("rol_id,roles(nombre)").eq("id",user.id).single();
-      if(uData&&(uData as any).roles?.nombre) setRol((uData as any).roles.nombre as Rol);
+      const {data:uData}=await supabase.from("usuarios").select("nombre,rol_id,roles(nombre)").eq("id",user.id).single();
+      if(uData){
+        if((uData as any).roles?.nombre) setRol((uData as any).roles.nombre as Rol);
+        if((uData as any).nombre) setNombreUsuario((uData as any).nombre);
+      }
       const {data,error}=await supabase.from("v_kpi_dashboard").select("*").single();
       if(!error&&data){ setKpi(data as KpiData); return; }
       const [e,pe,pr,va,re,fi]=await Promise.all([
@@ -1509,7 +1535,7 @@ export default function UAGPage() {
   function renderPage(){
     if(active==="expediente"&&exp) return <ExpedientePage estudiante={exp} onBack={()=>{ setActive("alumnos"); setExp(null); }}/>;
     switch(active){
-      case "dashboard":     return <DashboardPage setActive={setActive} kpi={kpi} rol={rol}/>;
+      case "dashboard":     return <DashboardPage setActive={setActive} kpi={kpi} rol={rol} nombre={nombreUsuario||user?.email?.split("@")[0]||"Usuario"}/>;
       case "alumnos":       return <AlumnosPage setActive={setActive} setExp={setExp}/>;
       case "equivalencias": return <EquivalenciasPage/>;
       case "seguimiento":   return <SeguimientoPage/>;
@@ -1519,7 +1545,7 @@ export default function UAGPage() {
       case "usuarios":      return <UsuariosPage/>;
       case "auditoria":     return <AuditoriaPage/>;
       case "config":        return <ConfigPage/>;
-      default:              return <DashboardPage setActive={setActive} kpi={kpi} rol={rol}/>;
+      default:              return <DashboardPage setActive={setActive} kpi={kpi} rol={rol} nombre={nombreUsuario||user?.email?.split("@")[0]||"Usuario"}/>;
     }
   }
 
