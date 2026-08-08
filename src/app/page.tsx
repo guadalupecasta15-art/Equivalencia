@@ -185,7 +185,7 @@ type Estudiante = { id:string;matricula:string;nombre:string;correo:string;telef
 type Equivalencia = { id:string;estudiante_id:string;clave_origen:string;nombre_origen:string;institucion_origen:string;nombre_uag:string;clave_uag:string;creditos:number;fecha_solicitud:string;estatus:string;observaciones?:string;estudiantes?:{nombre:string;matricula:string};};
 type KpiData = { total_estudiantes:number;equiv_pendientes:number;equiv_proceso:number;equiv_validadas:number;equiv_rechazadas:number;equiv_finalizadas:number;};
 type AuditLog = { id:string;tabla:string;accion:string;campo?:string;valor_antes?:string;valor_despues?:string;created_at:string;usuario_id?:string;};
-type Carrera = { id:string;nombre:string;clave:string;creditos_total:number;total_materias:number;modalidad:string;nivel?:string;};
+type Carrera = { id:string;nombre:string;clave:string;creditos_total:number;total_materias:number;modalidad:string;nivel?:string;calificacion_minima?:number;};
 type Materia = { id:string;carrera_id:string;clave:string;nombre:string;creditos:number;semestre:number;obligatoria:boolean;};
 type Usuario = { id:string;nombre:string;correo:string;rol:string;activo:boolean;ultimo_login?:string;};
 
@@ -1026,7 +1026,7 @@ function CarrerasPage() {
         <div className="card" style={{padding:"clamp(16px,3vw,24px)"}}>
           <div className="fl g10 mb20"><button onClick={()=>setSelected(null)} className="btn bs" style={{padding:"7px 12px",fontSize:13,minHeight:36,display:"flex",alignItems:"center",gap:6}}><ArrowLeft size={14}/> Regresar</button><h3 style={{fontSize:18,fontWeight:800,color:T.t1,letterSpacing:"-.03em"}}>{selected.nombre}</h3></div>
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(min(150px,100%),1fr))",gap:12,marginBottom:20}}>
-            {[{l:"Clave",v:selected.clave},{l:"Modalidad",v:selected.modalidad},{l:"Total materias",v:selected.total_materias},{l:"Créditos totales",v:selected.creditos_total}].map(({l,v})=>(
+            {[{l:"Clave",v:selected.clave},{l:"Modalidad",v:selected.modalidad},{l:"Total materias",v:selected.total_materias},{l:"Créditos totales",v:selected.creditos_total},{l:"Calificación mínima",v:selected.calificacion_minima??"—"}].map(({l,v})=>(
               <div key={l} style={{background:T.s2,borderRadius:10,padding:"12px 14px",border:`1px solid ${T.border}`}}><p style={{fontSize:10.5,color:T.t4,fontWeight:700,textTransform:"uppercase",letterSpacing:".06em",marginBottom:5}}>{l}</p><p style={{fontSize:16,fontWeight:800,color:T.t1}}>{v}</p></div>
             ))}
           </div>
