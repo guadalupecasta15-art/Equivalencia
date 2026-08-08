@@ -931,6 +931,25 @@ function SeguimientoPage() {
               </div>
             )}
           </div>
+          {!loadingPlan&&materias.length>0&&(
+            <div className="card mb16" style={{padding:"clamp(16px,3vw,22px)"}}>
+              <p className="stitle" style={{marginBottom:14}}>Avance por semestre</p>
+              <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                {semestres.map(sem=>{
+                  const delSem=materias.filter(m=>m.semestre===sem);
+                  const validadasSem=delSem.filter(m=>equivMap[m.clave]?.estatus==="validado").length;
+                  const pct=delSem.length>0?Math.round((validadasSem/delSem.length)*100):0;
+                  return (
+                    <div key={sem} className="fl-sb g12">
+                      <p style={{fontSize:13.5,color:T.t2,minWidth:90}}>Semestre {sem}</p>
+                      <div className="pbar" style={{flex:1}}><div className="pbar-f" style={{width:`${pct}%`,background:pct===100?T.green:pct>0?T.orange:T.grayM}}/></div>
+                      <p style={{fontSize:12.5,fontWeight:600,color:pct===100?T.green:pct>0?T.orange:T.t4,minWidth:70,textAlign:"right"}}>{validadasSem}/{delSem.length} materias</p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
           {!loadingPlan&&materias.length===0?(
             <div className="card"><ES icon={<BookOpen size={40}/>} title="Sin plan de estudios" desc="Esta carrera todavía no tiene su malla curricular cargada, o el alumno no tiene carrera asignada."/></div>
           ):(
