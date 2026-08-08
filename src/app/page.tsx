@@ -352,12 +352,14 @@ function DashboardPage({ setActive, kpi, rol, nombre }: { setActive:(s:string)=>
     });
   },[]);
   const PIE_D=[{name:"Pendiente",value:kpi?.equiv_pendientes??0},{name:"En proceso",value:kpi?.equiv_proceso??0},{name:"En revisión",value:0},{name:"Validadas",value:kpi?.equiv_validadas??0},{name:"Rechazadas",value:kpi?.equiv_rechazadas??0},{name:"Finalizadas",value:kpi?.equiv_finalizadas??0}];
+  const totalEquiv=kpi?(kpi.equiv_pendientes+kpi.equiv_proceso+kpi.equiv_validadas+kpi.equiv_rechazadas+kpi.equiv_finalizadas):0;
+  const pct=(n:number)=>totalEquiv>0?Math.round((n/totalEquiv)*100):0;
   const KPIS=[
-    {label:"Total alumnos",value:kpi?.total_estudiantes,icon:<Users size={15}/>,accent:T.brand,abg:"rgba(122,37,49,.07)",trend:"+12 este ciclo",up:true},
-    {label:"Validadas",value:kpi?.equiv_validadas,icon:<CheckCircle size={15}/>,accent:T.green,abg:"rgba(22,101,52,.07)",trend:"45% del total",up:true},
-    {label:"En proceso",value:kpi?.equiv_proceso,icon:<Clock size={15}/>,accent:T.blue,abg:"rgba(30,64,175,.07)",trend:"38% del total",up:null},
-    {label:"Pendientes",value:kpi?.equiv_pendientes,icon:<AlertCircle size={15}/>,accent:T.amber,abg:"rgba(146,64,14,.07)",trend:"Requieren atención",up:false},
-    {label:"Rechazadas",value:kpi?.equiv_rechazadas,icon:<X size={15}/>,accent:T.red,abg:"rgba(153,27,27,.07)",trend:"Sin cambio",up:null},
+    {label:"Total alumnos",value:kpi?.total_estudiantes,icon:<Users size={15}/>,accent:T.brand,abg:"rgba(122,37,49,.07)",trend:"Registrados en el sistema",up:null},
+    {label:"Validadas",value:kpi?.equiv_validadas,icon:<CheckCircle size={15}/>,accent:T.green,abg:"rgba(22,101,52,.07)",trend:`${pct(kpi?.equiv_validadas??0)}% del total`,up:true},
+    {label:"En proceso",value:kpi?.equiv_proceso,icon:<Clock size={15}/>,accent:T.blue,abg:"rgba(30,64,175,.07)",trend:`${pct(kpi?.equiv_proceso??0)}% del total`,up:null},
+    {label:"Pendientes",value:kpi?.equiv_pendientes,icon:<AlertCircle size={15}/>,accent:T.amber,abg:"rgba(146,64,14,.07)",trend:(kpi?.equiv_pendientes??0)>0?"Requieren atención":"Sin pendientes",up:false},
+    {label:"Rechazadas",value:kpi?.equiv_rechazadas,icon:<X size={15}/>,accent:T.red,abg:"rgba(153,27,27,.07)",trend:`${pct(kpi?.equiv_rechazadas??0)}% del total`,up:null},
   ];
   const feed=[
     {c:"#4ade80",text:"Success Coach visualizando expediente de Juan Pérez",time:"Hace 2 min"},
