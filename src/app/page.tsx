@@ -1246,51 +1246,61 @@ function DocumentosPage({ rol }: { rol:Rol }) {
 }
 
 function UsuariosPage() {
-  const usuarios: Usuario[]=[
-    {id:"1",nombre:"Candy García",correo:"candy.garcia@uag.mx",rol:"jefa_admisiones",activo:true,ultimo_login:"2026-03-12T10:30:00"},
-    {id:"2",nombre:"Roberto Méndez",correo:"roberto.mendez@uag.mx",rol:"decano",activo:true,ultimo_login:"2026-03-12T09:00:00"},
-    {id:"3",nombre:"Luis Castro",correo:"luis.castro@uag.mx",rol:"success_coach",activo:true,ultimo_login:"2026-03-12T11:00:00"},
-    {id:"4",nombre:"Martha Ruiz",correo:"martha.ruiz@uag.mx",rol:"success_coach",activo:true,ultimo_login:"2026-03-11T16:00:00"},
-    {id:"5",nombre:"Ana Gómez",correo:"ana.gomez@uag.mx",rol:"seguimiento_academico",activo:true,ultimo_login:"2026-03-12T08:30:00"},
-    {id:"6",nombre:"Pedro Soto",correo:"pedro.soto@uag.mx",rol:"seguimiento_academico",activo:false,ultimo_login:"2026-03-01T10:00:00"},
-  ];
+  const [usuarios,setUsuarios]=useState<Usuario[]>([]);
+  const [loading,setLoading]=useState(true);
+  const [search,setSearch]=useState("");
+  useEffect(()=>{
+    supabase.from("usuarios").select("id,nombre,correo,activo,ultimo_login,roles(nombre)").order("nombre").then(({data})=>{
+      if(data) setUsuarios(data.map((u:any)=>({id:u.id,nombre:u.nombre,correo:u.correo,rol:u.roles?.nombre??"—",activo:u.activo,ultimo_login:u.ultimo_login})) as Usuario[]);
+      setLoading(false);
+    });
+  },[]);
   const RLB: Record<string,string>={"decano":"Decano","jefa_admisiones":"Jefa de Admisiones","success_coach":"Success Coach","seguimiento_academico":"Seguimiento Académico"};
+  const filtered=usuarios.filter(u=>u.nombre.toLowerCase().includes(search.toLowerCase())||u.correo.toLowerCase().includes(search.toLowerCase()));
   return (
     <div className="pw">
       <div className="fl-sb fl-w g12 mb20">
-        <div><h2 className="ptitle">Usuarios y Permisos</h2><p style={{fontSize:13.5,color:T.t3,marginTop:3}}>{usuarios.length} usuarios registrados · {usuarios.filter(u=>u.activo).length} activos</p></div>
+        <div><h2 className="ptitle">Usuarios y Permisos</h2><p style={{fontSize:13.5,color:T.t3,marginTop:3}}>{loading?"Cargando…":`${usuarios.length} usuarios registrados · ${usuarios.filter(u=>u.activo).length} activos`}</p></div>
         <button className="btn bp" style={{fontSize:13}}><Plus size={13}/> Nuevo usuario</button>
       </div>
       <div className="kgrid" style={{gridTemplateColumns:"repeat(auto-fill,minmax(min(150px,100%),1fr))",marginBottom:16}}>
-        {[{l:"Total usuarios",v:usuarios.length,c:T.brand},{l:"Activos",v:usuarios.filter(u=>u.activo).length,c:T.green},{l:"Inactivos",v:usuarios.filter(u=>!u.activo).length,c:T.red},{l:"Roles asignados",v:4,c:T.blue}].map(({l,v,c})=>(
+        {[{l:"Total usuarios",v:usuarios.length,c:T.brand},{l:"Activos",v:usuarios.filter(u=>u.activo).length,c:T.green},{l:"Inactivos",v:usuarios.filter(u=>!u.activo).length,c:T.red},{l:"Roles asignados",v:new Set(usuarios.map(u=>u.rol)).size,c:T.blue}].map(({l,v,c})=>(
           <div key={l} className="kcard" style={{padding:"14px 16px"}}><p style={{fontSize:"clamp(20px,3vw,28px)",fontWeight:900,color:c,letterSpacing:"-.04em",lineHeight:1,marginBottom:5}}>{v}</p><p style={{fontSize:12,color:T.t3}}>{l}</p></div>
         ))}
       </div>
+      <div className="fl-w g8 mb16">
+        <div style={{position:"relative",flex:1,maxWidth:320}}><Search size={13} style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",color:T.t4}}/><input aria-label="Buscar usuario" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Nombre o correo…" style={{width:"100%",minHeight:36,padding:"7px 12px 7px 32px",background:"#fff",color:T.t1,border:`1.5px solid ${T.border}`,borderRadius:9,fontSize:13.5,fontFamily:"inherit",outline:"none"}} onFocus={e=>e.target.style.borderColor=T.brand} onBlur={e=>e.target.style.borderColor=T.border}/></div>
+      </div>
       <div className="card t2c">
-        <div className="mc" style={{padding:12}}>
-          {usuarios.map(u=>(
-            <article key={u.id} style={{border:`1px solid ${T.border}`,borderRadius:11,padding:"13px 15px",marginBottom:9,background:"#fff"}}>
-              <div className="fl g10 mb8"><Av name={u.nombre} sz={36}/><div style={{flex:1,minWidth:0}}><p style={{fontWeight:700,fontSize:14,color:T.t1,lineHeight:1.2}}>{u.nombre}</p><p style={{fontSize:12.5,color:T.t3,marginTop:2}}>{u.correo}</p></div><Badge s={u.activo?"activo":"inactivo"}/></div>
-              <p style={{fontSize:12.5,color:T.t2,marginBottom:6}}><span style={{color:T.t3}}>Rol: </span><strong>{RLB[u.rol]??u.rol}</strong></p>
-              <p style={{fontSize:12,color:T.t4}}>Último acceso: {fmtDate(u.ultimo_login||"")}</p>
-            </article>
-          ))}
-        </div>
-        <div className="tw">
-          <table aria-label="Lista de usuarios">
-            <thead><tr>{["Usuario","Correo","Rol","Último acceso","Estatus","Acciones"].map(h=><th key={h} scope="col">{h}</th>)}</tr></thead>
-            <tbody>{usuarios.map(u=>(
-              <tr key={u.id}>
-                <td><div className="fl g9"><Av name={u.nombre} sz={30}/><p style={{fontWeight:600,fontSize:13.5,color:T.t1}}>{u.nombre}</p></div></td>
-                <td style={{fontSize:13,color:T.t2}}>{u.correo}</td>
-                <td><span style={{background:T.purpleM,color:T.purple,padding:"2px 8px",borderRadius:99,fontSize:12,fontWeight:600}}>{RLB[u.rol]??u.rol}</span></td>
-                <td style={{fontSize:12.5,color:T.t3}}>{fmtDate(u.ultimo_login||"")}</td>
-                <td><Badge s={u.activo?"activo":"inactivo"}/></td>
-                <td><div className="fl g5"><button className="bico" aria-label={`Editar ${u.nombre}`}><Pencil size={13}/></button><button className="bico" aria-label={`Eliminar ${u.nombre}`} style={{color:T.red,borderColor:"rgba(153,27,27,.18)"}}><Trash2 size={13}/></button></div></td>
-              </tr>
-            ))}</tbody>
-          </table>
-        </div>
+        {loading?(<div style={{padding:40,textAlign:"center"}} role="status"><Sp size={20} label="Cargando usuarios"/></div>)
+        :filtered.length===0?(<ES icon={<UserCog size={40}/>} title="Sin usuarios" desc="No se encontraron usuarios registrados."/>):(
+          <>
+            <div className="mc" style={{padding:12}}>
+              {filtered.map(u=>(
+                <article key={u.id} style={{border:`1px solid ${T.border}`,borderRadius:11,padding:"13px 15px",marginBottom:9,background:"#fff"}}>
+                  <div className="fl g10 mb8"><Av name={u.nombre} sz={36}/><div style={{flex:1,minWidth:0}}><p style={{fontWeight:700,fontSize:14,color:T.t1,lineHeight:1.2}}>{u.nombre}</p><p style={{fontSize:12.5,color:T.t3,marginTop:2}}>{u.correo}</p></div><Badge s={u.activo?"activo":"inactivo"}/></div>
+                  <p style={{fontSize:12.5,color:T.t2,marginBottom:6}}><span style={{color:T.t3}}>Rol: </span><strong>{RLB[u.rol]??u.rol}</strong></p>
+                  <p style={{fontSize:12,color:T.t4}}>Último acceso: {u.ultimo_login?fmtDate(u.ultimo_login):"Nunca"}</p>
+                </article>
+              ))}
+            </div>
+            <div className="tw">
+              <table aria-label="Lista de usuarios">
+                <thead><tr>{["Usuario","Correo","Rol","Último acceso","Estatus","Acciones"].map(h=><th key={h} scope="col">{h}</th>)}</tr></thead>
+                <tbody>{filtered.map(u=>(
+                  <tr key={u.id}>
+                    <td><div className="fl g9"><Av name={u.nombre} sz={30}/><p style={{fontWeight:600,fontSize:13.5,color:T.t1}}>{u.nombre}</p></div></td>
+                    <td style={{fontSize:13,color:T.t2}}>{u.correo}</td>
+                    <td><span style={{background:T.purpleM,color:T.purple,padding:"2px 8px",borderRadius:99,fontSize:12,fontWeight:600}}>{RLB[u.rol]??u.rol}</span></td>
+                    <td style={{fontSize:12.5,color:T.t3}}>{u.ultimo_login?fmtDate(u.ultimo_login):"Nunca"}</td>
+                    <td><Badge s={u.activo?"activo":"inactivo"}/></td>
+                    <td><div className="fl g5"><button className="bico" aria-label={`Editar ${u.nombre}`}><Pencil size={13}/></button><button className="bico" aria-label={`Eliminar ${u.nombre}`} style={{color:T.red,borderColor:"rgba(153,27,27,.18)"}}><Trash2 size={13}/></button></div></td>
+                  </tr>
+                ))}</tbody>
+              </table>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
