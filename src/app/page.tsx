@@ -859,84 +859,118 @@ function EquivalenciasPage() {
 
 
 function SeguimientoPage() {
-  const materias=[
-    {sem:1,nombre:"Introducción al Derecho",clave:"DER101",cred:6,tipo:"Obligatoria",est:"validado"},
-    {sem:1,nombre:"Historia Universal",clave:"HIS101",cred:4,tipo:"Equivalencia",est:"validado"},
-    {sem:2,nombre:"Derecho Civil I",clave:"DER201",cred:6,tipo:"Obligatoria",est:"validado"},
-    {sem:2,nombre:"Sociología Jurídica",clave:"SOC201",cred:4,tipo:"Equivalencia",est:"en_proceso"},
-    {sem:3,nombre:"Derecho Constitucional",clave:"DER301",cred:6,tipo:"Obligatoria",est:"en_revision"},
-    {sem:3,nombre:"Matemáticas Básicas",clave:"MAT101",cred:4,tipo:"Equivalencia",est:"pendiente"},
-    {sem:4,nombre:"Derecho Penal",clave:"DER401",cred:6,tipo:"Obligatoria",est:"pendiente"},
-    {sem:4,nombre:"Filosofía del Derecho",clave:"FIL401",cred:4,tipo:"Obligatoria",est:"pendiente"},
-  ];
-  const sems=[...new Set(materias.map(m=>m.sem))];
-  const creds={total:200,obtenidos:134,faltantes:66};
+  const [alumnos,setAlumnos]=useState<Estudiante[]>([]);
+  const [loadingAlumnos,setLoadingAlumnos]=useState(true);
+  const [search,setSearch]=useState("");
+  const [selected,setSelected]=useState<Estudiante|null>(null);
+  const [materias,setMaterias]=useState<Materia[]>([]);
+  const [equivMap,setEquivMap]=useState<Record<string,{estatus:string}>>({});
+  const [loadingPlan,setLoadingPlan]=useState(false);
+
+  useEffect(()=>{ supabase.from("estudiantes").select("*,carreras(nombre,clave)").order("nombre").then(({data})=>{ if(data) setAlumnos(data as Estudiante[]); setLoadingAlumnos(false); }); },[]);
+
+  useEffect(()=>{
+    if(!selected||!selected.carrera_id){ setMaterias([]); setEquivMap({}); return; }
+    setLoadingPlan(true);
+    Promise.all([
+      supabase.from("materias").select("*").eq("carrera_id",selected.carrera_id).order("semestre",{ascending:true}).order("clave",{ascending:true}),
+      supabase.from("equivalencias").select("clave_uag,estatus").eq("estudiante_id",selected.id),
+    ]).then(([mRes,eRes])=>{
+      if(mRes.data) setMaterias(mRes.data as Materia[]);
+      const map:Record<string,{estatus:string}>={};
+      (eRes.data||[]).forEach((e:any)=>{ if(e.clave_uag) map[e.clave_uag]={estatus:e.estatus}; });
+      setEquivMap(map);
+      setLoadingPlan(false);
+    });
+  },[selected]);
+
+  const filteredAlumnos=alumnos.filter(a=>a.nombre.toLowerCase().includes(search.toLowerCase())||a.matricula.includes(search));
+  const semestres=[...new Set(materias.map(m=>m.semestre))].sort((a,b)=>a-b);
+  const totalMaterias=materias.length;
+  const conEquivalencia=materias.filter(m=>equivMap[m.clave]).length;
+  const validadas=materias.filter(m=>equivMap[m.clave]?.estatus==="validado").length;
+  const creditosTotal=materias.reduce((s,m)=>s+(m.creditos||0),0);
+  const creditosValidados=materias.filter(m=>equivMap[m.clave]?.estatus==="validado").reduce((s,m)=>s+(m.creditos||0),0);
+
   return (
     <div className="pw">
       <div className="fl-sb fl-w g12 mb20">
-        <div><h2 className="ptitle">Seguimiento Académico</h2><p style={{fontSize:13.5,color:T.t3,marginTop:3}}>Plan de estudios y avance por semestre</p></div>
-        <div className="fl g8">
-          <button className="btn bs" style={{fontSize:13}}><Download size={13}/> Exportar plan</button>
-        </div>
+        <div><h2 className="ptitle">Seguimiento Académico</h2><p style={{fontSize:13.5,color:T.t3,marginTop:3}}>Plan de estudios real y equivalencias por alumno</p></div>
       </div>
-      <div className="kgrid" style={{gridTemplateColumns:"repeat(auto-fill,minmax(min(150px,100%),1fr))",marginBottom:16}}>
-        {[{l:"Total materias",v:48,c:T.brand},{l:"Cursadas",v:26,c:T.green},{l:"Equivalentes",v:8,c:T.blue},{l:"Pendientes",v:14,c:T.amber},{l:"Créditos obtenidos",v:134,c:T.purple},{l:"Créditos faltantes",v:66,c:T.t3}].map(({l,v,c})=>(
-          <div key={l} className="kcard" style={{padding:"14px 16px"}}>
-            <p style={{fontSize:"clamp(20px,3vw,28px)",fontWeight:900,color:c,letterSpacing:"-.04em",lineHeight:1,marginBottom:5}}>{v}</p>
-            <p style={{fontSize:12,color:T.t3,lineHeight:1.3}}>{l}</p>
-          </div>
-        ))}
-      </div>
-      <div style={{display:"grid",gap:14,gridTemplateColumns:"1fr",marginBottom:16}}>
-        <div className="card" style={{padding:"clamp(16px,3vw,22px)"}}>
-          <p className="stitle" style={{marginBottom:14}}>Avance de créditos</p>
-          <div className="fl g14" style={{flexWrap:"wrap",alignItems:"center",marginBottom:12}}>
-            <div style={{flex:1,minWidth:200}}>
-              <div className="fl-sb" style={{marginBottom:6}}><span style={{fontSize:13,color:T.t2}}>Créditos obtenidos</span><span style={{fontSize:13,fontWeight:700,color:T.green}}>{creds.obtenidos}/{creds.total}</span></div>
-              <div className="pbar" style={{height:10}}><div className="pbar-f" style={{width:`${Math.round(creds.obtenidos/creds.total*100)}%`,background:T.green}}/></div>
-            </div>
-            <p style={{fontSize:36,fontWeight:900,color:T.brand,letterSpacing:"-.04em",lineHeight:1}}>{Math.round(creds.obtenidos/creds.total*100)}%</p>
-          </div>
-          <div className="fl g8" style={{flexWrap:"wrap"}}>
-            {[{l:"Obligatorias",v:120,c:T.brand},{l:"Optativas",v:14,c:T.blue},{l:"Equivalencias",v:0,c:T.green}].map(({l,v,c})=>(
-              <div key={l} style={{background:T.s2,borderRadius:8,padding:"8px 12px",display:"flex",alignItems:"center",gap:8}}>
-                <span style={{width:8,height:8,borderRadius:"50%",background:c,flexShrink:0}} aria-hidden="true"/>
-                <span style={{fontSize:12.5,color:T.t2}}>{l}: <strong style={{color:T.t1}}>{v} cr.</strong></span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-      {sems.map(sem=>(
-        <div key={sem} className="card mb14">
-          <div className="fl-sb" style={{padding:"13px 18px 10px"}}>
-            <div className="fl g8">
-              <span style={{background:T.brand,color:"#fff",padding:"3px 10px",borderRadius:99,fontSize:12,fontWeight:700}}>Semestre {sem}</span>
-              <p className="stitle">Plan de estudios</p>
-            </div>
-            <span style={{fontSize:12,color:T.t3}}>{materias.filter(m=>m.sem===sem).length} materias</span>
+      {!selected?(
+        <div className="card">
+          <div style={{padding:"14px 18px 10px"}}>
+            <div style={{position:"relative",maxWidth:340}}><Search size={13} style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",color:T.t4}}/><input aria-label="Buscar alumno" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Nombre o matrícula…" style={{width:"100%",minHeight:36,padding:"7px 12px 7px 32px",background:"#fff",color:T.t1,border:`1.5px solid ${T.border}`,borderRadius:9,fontSize:13.5,fontFamily:"inherit",outline:"none"}}/></div>
           </div>
           <div className="divider"/>
-          <div className="tw">
-            <table>
-              <thead><tr>{["Materia","Clave","Créditos","Tipo","Estatus"].map(h=><th key={h} scope="col">{h}</th>)}</tr></thead>
-              <tbody>{materias.filter(m=>m.sem===sem).map((m,i)=>(
-                <tr key={i}>
-                  <td style={{fontWeight:600,fontSize:13.5,color:T.t1}}>{m.nombre}</td>
-                  <td><code style={{background:T.s2,color:T.t2,padding:"2px 7px",borderRadius:5,fontSize:12,fontFamily:"monospace",fontWeight:600}}>{m.clave}</code></td>
-                  <td><span style={{background:T.blueM,color:T.blue,padding:"2px 8px",borderRadius:99,fontSize:12,fontWeight:600}}>{m.cred} cr.</span></td>
-                  <td><span style={{background:m.tipo==="Equivalencia"?T.purpleM:T.grayM,color:m.tipo==="Equivalencia"?T.purple:T.gray,padding:"2px 8px",borderRadius:99,fontSize:12,fontWeight:600}}>{m.tipo}</span></td>
-                  <td><Badge s={m.est}/></td>
-                </tr>
-              ))}</tbody>
-            </table>
-          </div>
+          {loadingAlumnos?(<div style={{padding:40,textAlign:"center"}} role="status"><Sp size={20} label="Cargando alumnos"/></div>)
+          :filteredAlumnos.length===0?(<ES icon={<GraduationCap size={40}/>} title="Sin alumnos" desc="No se encontraron alumnos con ese término."/>):(
+            <div className="tw">
+              <table>
+                <thead><tr>{["Alumno","Matrícula","Carrera","Acciones"].map(h=><th key={h} scope="col">{h}</th>)}</tr></thead>
+                <tbody>{filteredAlumnos.map(a=>(
+                  <tr key={a.id}>
+                    <td><div className="fl g9"><Av name={a.nombre} sz={30}/><p style={{fontWeight:600,fontSize:13.5,color:T.t1}}>{a.nombre}</p></div></td>
+                    <td><code style={{background:T.s2,color:T.t2,padding:"2px 7px",borderRadius:6,fontSize:12.5,fontFamily:"monospace",fontWeight:600}}>{a.matricula}</code></td>
+                    <td style={{fontSize:13.5,color:T.t2}}>{a.carreras?.nombre??"—"}</td>
+                    <td><button onClick={()=>setSelected(a)} className="btn bs" style={{fontSize:12,padding:"6px 10px"}}><Eye size={12}/> Ver plan</button></td>
+                  </tr>
+                ))}</tbody>
+              </table>
+            </div>
+          )}
         </div>
-      ))}
+      ):(
+        <>
+          <div className="fl g10 mb16"><button onClick={()=>setSelected(null)} className="btn bs" style={{padding:"7px 12px",fontSize:13,minHeight:36,display:"flex",alignItems:"center",gap:6}}><ArrowLeft size={14}/> Buscar otro alumno</button></div>
+          <div className="card mb16" style={{padding:"clamp(16px,3vw,22px)"}}>
+            <div className="fl g10 mb14"><Av name={selected.nombre} sz={40}/><div><p style={{fontWeight:800,fontSize:16,color:T.t1}}>{selected.nombre}</p><p style={{fontSize:12.5,color:T.t3}}>{selected.matricula} · {selected.carreras?.nombre??"—"}</p></div></div>
+            {loadingPlan?(<div style={{padding:20,textAlign:"center"}} role="status"><Sp size={16} label="Calculando avance"/></div>):(
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(min(150px,100%),1fr))",gap:10}}>
+                {[{l:"Total materias",v:totalMaterias,c:T.brand},{l:"Con equivalencia",v:conEquivalencia,c:T.blue},{l:"Validadas",v:validadas,c:T.green},{l:"Sin registro",v:totalMaterias-conEquivalencia,c:T.t3},{l:"Créditos totales",v:creditosTotal,c:T.purple},{l:"Créditos validados",v:creditosValidados,c:T.green}].map(({l,v,c})=>(
+                  <div key={l} style={{background:T.s2,borderRadius:10,padding:"12px 14px",border:`1px solid ${T.border}`}}>
+                    <p style={{fontSize:"clamp(18px,3vw,24px)",fontWeight:900,color:c,letterSpacing:"-.04em",lineHeight:1,marginBottom:4}}>{v}</p>
+                    <p style={{fontSize:11.5,color:T.t3,lineHeight:1.3}}>{l}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          {!loadingPlan&&materias.length===0?(
+            <div className="card"><ES icon={<BookOpen size={40}/>} title="Sin plan de estudios" desc="Esta carrera todavía no tiene su malla curricular cargada, o el alumno no tiene carrera asignada."/></div>
+          ):(
+            semestres.map(sem=>(
+              <div key={sem} className="card mb14">
+                <div className="fl-sb" style={{padding:"13px 18px 10px"}}>
+                  <div className="fl g8"><span style={{background:T.brand,color:"#fff",padding:"3px 10px",borderRadius:99,fontSize:12,fontWeight:700}}>Semestre {sem}</span><p className="stitle">Plan de estudios</p></div>
+                  <span style={{fontSize:12,color:T.t3}}>{materias.filter(m=>m.semestre===sem).length} materias</span>
+                </div>
+                <div className="divider"/>
+                <div className="tw">
+                  <table>
+                    <thead><tr>{["Clave","Materia","Créditos","Tipo","Estatus"].map(h=><th key={h} scope="col">{h}</th>)}</tr></thead>
+                    <tbody>{materias.filter(m=>m.semestre===sem).map(m=>{
+                      const eq=equivMap[m.clave];
+                      return (
+                        <tr key={m.id}>
+                          <td><code style={{background:T.s2,color:T.t2,padding:"2px 7px",borderRadius:5,fontSize:12,fontFamily:"monospace",fontWeight:600}}>{m.clave}</code></td>
+                          <td style={{fontWeight:600,fontSize:13.5,color:T.t1}}>{m.nombre}</td>
+                          <td><span style={{background:T.blueM,color:T.blue,padding:"2px 8px",borderRadius:99,fontSize:12,fontWeight:600}}>{m.creditos??"—"} cr.</span></td>
+                          <td><span style={{background:m.obligatoria?T.redL:T.greenL,color:m.obligatoria?T.red:T.green,padding:"2px 8px",borderRadius:99,fontSize:12,fontWeight:600}}>{m.obligatoria?"Obligatoria":"Optativa"}</span></td>
+                          <td>{eq?<Badge s={eq.estatus}/>:<span style={{fontSize:12,color:T.t4}}>Sin registro</span>}</td>
+                        </tr>
+                      );
+                    })}</tbody>
+                  </table>
+                </div>
+              </div>
+            ))
+          )}
+        </>
+      )}
     </div>
   );
 }
-
 function CarrerasPage() {
   const [list,setList]=useState<Carrera[]>([]);
   const [loading,setLoading]=useState(true);
