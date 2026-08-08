@@ -359,13 +359,6 @@ function DashboardPage({ setActive, kpi, rol, nombre }: { setActive:(s:string)=>
     {label:"Pendientes",value:kpi?.equiv_pendientes,icon:<AlertCircle size={15}/>,accent:T.amber,abg:"rgba(146,64,14,.07)",trend:(kpi?.equiv_pendientes??0)>0?"Requieren atención":"Sin pendientes",up:false},
     {label:"Rechazadas",value:kpi?.equiv_rechazadas,icon:<X size={15}/>,accent:T.red,abg:"rgba(153,27,27,.07)",trend:`${pct(kpi?.equiv_rechazadas??0)}% del total`,up:null},
   ];
-  const feed=[
-    {c:"#4ade80",text:"Success Coach visualizando expediente de Juan Pérez",time:"Hace 2 min"},
-    {c:T.orange,text:"Seguimiento editando equivalencia — Derecho Civil I",time:"Hace 5 min"},
-    {c:T.blue,text:"Decano subió dictamen oficial — expediente #456987",time:"Hace 12 min"},
-    {c:T.red,text:"Admisiones cambió estatus a Rechazado",time:"Hace 18 min"},
-    {c:T.purple,text:"Nuevo alumno registrado — Pedro Sánchez",time:"Hace 31 min"},
-  ];
   return (
     <div className="pw">
       <div className="fl-sb fl-w g12 mb20">
@@ -427,16 +420,6 @@ function DashboardPage({ setActive, kpi, rol, nombre }: { setActive:(s:string)=>
         </div>
       </div>
       <div style={{display:"grid",gap:"clamp(11px,1.5vw,15px)",gridTemplateColumns:"1fr",marginBottom:0}}>
-        {(rol==="decano"||rol==="jefa_admisiones")&&(
-          <div className="card">
-            <div className="fl-sb" style={{padding:"14px 18px 10px"}}>
-              <div className="fl g8"><Activity size={15} style={{color:T.brand}}/><p className="stitle">Actividad en Tiempo Real</p></div>
-              <span style={{fontSize:11.5,color:T.green,fontWeight:600,display:"flex",alignItems:"center",gap:5}}><span style={{width:6,height:6,borderRadius:"50%",background:T.green}} aria-hidden="true"/>En vivo</span>
-            </div>
-            <div className="divider"/>
-            <div style={{padding:"12px 18px"}}>{feed.map((f,i)=><div key={i} style={{display:"flex",gap:10,padding:"9px 0",borderBottom:i<feed.length-1?"1px solid rgba(0,0,0,.05)":"none"}}><div style={{width:8,height:8,borderRadius:"50%",background:f.c,marginTop:5,flexShrink:0}} aria-hidden="true"/><div><p style={{fontSize:13,color:T.t1,lineHeight:1.4}}>{f.text}</p><p style={{fontSize:11.5,color:T.t4,marginTop:2}}>{f.time}</p></div></div>)}</div>
-          </div>
-        )}
         <div className="card">
           <div className="fl-sb" style={{padding:"14px 18px 10px"}}><p className="stitle">Acciones rápidas</p><Sparkles size={13} style={{color:T.orange}}/></div>
           <div className="divider"/>
